@@ -1,0 +1,2587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoStep QCU | Kinetic Footstep Harvester & 4x4 Grid Platform Simulator</title>
+  
+  <!-- Modern Typography from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js for High-Precision Real-Time Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-base: #070a12;
+      --bg-surface: rgba(15, 23, 42, 0.88);
+      --bg-surface-elevated: rgba(30, 41, 59, 0.75);
+      --border-subtle: rgba(56, 189, 248, 0.15);
+      --border-glow: rgba(56, 189, 248, 0.4);
+      --accent-cyan: #38bdf8;
+      --accent-teal: #14b8a6;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --peso-green: #22c55e;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(20, 184, 166, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 25%, rgba(56, 189, 248, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #070a12; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+    /* Top Navigation Header */
+    header {
+      background: rgba(11, 15, 25, 0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 14px; }
+    .qcu-badge {
+      background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(13, 148, 136, 0.4));
+      border: 1px solid rgba(45, 212, 191, 0.4);
+      color: #5eead4;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .qcu-badge::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #5eead4;
+      box-shadow: 0 0 8px #5eead4;
+    }
+    .brand-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    .brand-sub {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+    .btn {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      text-decoration: none;
+    }
+    .btn:hover {
+      background: #334155;
+      border-color: var(--accent-cyan);
+      transform: translateY(-1px);
+    }
+    .btn-accent {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+    }
+    .btn-accent:hover {
+      background: linear-gradient(135deg, #0369a1, #075985);
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+    }
+
+    /* Main Container */
+    .app-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* Shift Modifier Banner */
+    .shift-bar {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--border-glow);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .shift-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .shift-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .shift-btn {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #94a3b8;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .shift-btn:hover {
+      background: #334155;
+      color: #fff;
+      border-color: var(--accent-cyan);
+    }
+    .shift-btn.active {
+      background: linear-gradient(135deg, #0d9488, #0f766e);
+      color: #fff;
+      border-color: #2dd4bf;
+      box-shadow: 0 0 15px rgba(45, 212, 191, 0.3);
+    }
+    .shift-btn.active.pm-out {
+      background: linear-gradient(135deg, #b45309, #d97706);
+      border-color: #f59e0b;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+    }
+    .shift-btn.active.auto-cycle {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border-color: #818cf8;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Hero Section with Infinite Walking Loop */
+    .hero-panel {
+      background: var(--bg-surface);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    @media (max-width: 1024px) {
+      .hero-panel { grid-template-columns: 1fr; }
+    }
+
+    .canvas-card {
+      position: relative;
+      background: #090e1a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .canvas-header {
+      padding: 12px 18px;
+      background: rgba(15, 23, 42, 0.9);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+    #walkCanvas {
+      width: 100%;
+      height: 280px;
+      display: block;
+      background: #070c18;
+    }
+    .walk-controls {
+      padding: 12px 18px;
+      background: rgba(15, 23, 42, 0.85);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .slider-group input[type="range"] {
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    /* Live Telemetry KPI Matrix */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .kpi-box {
+      background: rgba(20, 30, 48, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .kpi-box:hover {
+      border-color: var(--border-glow);
+      transform: translateY(-2px);
+    }
+    .kpi-box::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+    }
+    .kpi-box.cyan::after { background: var(--accent-cyan); }
+    .kpi-box.emerald::after { background: var(--accent-emerald); }
+    .kpi-box.amber::after { background: var(--accent-amber); }
+    .kpi-box.peso::after { background: var(--peso-green); }
+
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .kpi-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 4px 0;
+    }
+    .kpi-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Section Headings */
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .section-title span.badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent-cyan);
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* REAL-WORLD PURPOSE UTILITY CARDS */
+    .purpose-deck {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+    @media (max-width: 1080px) {
+      .purpose-deck { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .purpose-deck { grid-template-columns: 1fr; }
+    }
+    .purpose-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .purpose-card:hover {
+      border-color: var(--accent-cyan);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .purpose-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .purpose-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .purpose-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      flex: 1;
+    }
+    .purpose-kpi {
+      background: #090d16;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      color: #cbd5e1;
+    }
+
+    /* ================= NEW POPULATION & STEPPER RUNTIME ENGINE ================= */
+    .pop-engine-card {
+      background: var(--bg-surface);
+      border: 2px solid rgba(56, 189, 248, 0.35);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+    .pop-engine-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #10b981, #38bdf8, #f59e0b, #f43f5e);
+    }
+
+    .pop-controls-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 0.9fr 0.8fr;
+      gap: 18px;
+      background: rgba(11, 17, 32, 0.8);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    @media (max-width: 900px) {
+      .pop-controls-grid { grid-template-columns: 1fr; }
+    }
+
+    .pop-slider-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .pop-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .transducer-toggle {
+      display: flex;
+      gap: 6px;
+      background: #090d16;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 4px;
+    }
+    .trans-btn {
+      flex: 1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .trans-btn.active {
+      background: #0284c7;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    /* 4 Live Runtime Metric Boxes */
+    .runtime-deck {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 1024px) {
+      .runtime-deck { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .runtime-deck { grid-template-columns: 1fr; }
+    }
+    .runtime-card {
+      background: rgba(20, 30, 48, 0.7);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+    .runtime-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+    .runtime-display {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .runtime-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .runtime-unit {
+      font-size: 12px;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+    .runtime-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding-top: 8px;
+    }
+
+    /* Reference Table */
+    .pop-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+    .pop-table th {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .pop-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      color: var(--text-secondary);
+    }
+    .pop-table tr:hover td { background: rgba(56, 189, 248, 0.05); }
+
+    /* Scalability Matrix Cards */
+    .matrix-selector-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .matrix-card {
+      background: var(--bg-surface);
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+    .matrix-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      background: rgba(30, 41, 59, 0.6);
+    }
+    .matrix-card.active {
+      border-color: var(--accent-cyan);
+      background: linear-gradient(135deg, rgba(14, 116, 144, 0.2), rgba(15, 23, 42, 0.9));
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+    }
+    .matrix-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .matrix-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .matrix-specs {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .matrix-tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+    }
+    .matrix-card.active .matrix-tag {
+      background: var(--accent-cyan);
+      color: #042f2e;
+    }
+
+    /* Comparison Dashboard 2-Columns */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+    }
+    @media (max-width: 1024px) {
+      .comparison-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Footstep Stepper Simulator Card */
+    .stepper-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .preset-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .preset-btn {
+      padding: 6px 12px;
+      font-size: 11px;
+      border-radius: 6px;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .preset-btn:hover {
+      background: #334155;
+      color: #fff;
+      border-color: var(--accent-cyan);
+    }
+    .preset-btn.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+      font-weight: 700;
+    }
+
+    .slider-main {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #1e293b;
+      outline: none;
+      accent-color: #38bdf8;
+    }
+
+    /* Load Cards Grid */
+    .loads-deck {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .load-item {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+    .load-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .load-progress-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: #1e293b;
+      overflow: hidden;
+    }
+    .load-progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .load-metric {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* 3D Model & Architecture Section */
+    .two-col-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .two-col-layout { grid-template-columns: 1fr; }
+    }
+
+    /* 3D Perspective Tile Preview */
+    .cad-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .cad-viewport {
+      height: 320px;
+      background: radial-gradient(circle at center, #172554 0%, #070c18 80%);
+      border-radius: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      perspective: 1000px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: grab;
+      overflow: hidden;
+    }
+    .cad-stage {
+      width: 200px;
+      height: 200px;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(60deg) rotateZ(-35deg);
+      transition: transform 0.1s ease-out;
+    }
+    .cad-layer {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .cad-tread {
+      background: repeating-linear-gradient(45deg, #0d9488, #0d9488 10px, #0f766e 10px, #0f766e 20px);
+      border: 2px solid #2dd4bf;
+      color: #fff;
+      transform: translateZ(90px);
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    }
+    .cad-studs {
+      transform: translateZ(55px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      padding: 15px;
+      gap: 8px;
+    }
+    .cad-stud {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+      margin: auto;
+    }
+    .cad-piezo {
+      background: rgba(30, 41, 59, 0.9);
+      border: 2px solid #f59e0b;
+      transform: translateZ(25px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      padding: 10px;
+      gap: 6px;
+    }
+    .cad-disc {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #cbd5e1 45%, #f59e0b 46%, #b45309 90%);
+      margin: auto;
+      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+    .cad-base {
+      background: #0f172a;
+      border: 2px solid #38bdf8;
+      transform: translateZ(0px);
+      color: #94a3b8;
+    }
+
+    /* Financial Table (Pesos) */
+    .cost-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .cost-table th {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .cost-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-secondary);
+    }
+    .cost-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .peso-badge {
+      font-weight: 700;
+      color: var(--peso-green);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* AR101 Architecture Spec Table */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      font-size: 11px;
+    }
+    .arch-card {
+      background: #111827;
+      border-left: 3px solid var(--accent-cyan);
+      border-radius: 0 6px 6px 0;
+      padding: 10px 12px;
+    }
+    .arch-card h5 {
+      color: #f1f5f9;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .arch-card p {
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Hardware Photo Gallery */
+    .hardware-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 8px;
+    }
+    @media (max-width: 1100px) {
+      .hardware-gallery-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 650px) {
+      .hardware-gallery-grid { grid-template-columns: 1fr; }
+    }
+    .hw-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .hw-card:hover {
+      border-color: var(--accent-cyan);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .hw-img-wrap {
+      width: 100%;
+      height: 180px;
+      position: relative;
+      background: #090d16;
+      overflow: hidden;
+    }
+    .hw-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+    }
+    .hw-card:hover .hw-img {
+      transform: scale(1.05);
+    }
+    .hw-tag {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .hw-tag.zero {
+      background: rgba(16, 185, 129, 0.95);
+      color: #022c22;
+    }
+    .hw-tag.budget {
+      background: rgba(245, 158, 11, 0.95);
+      color: #451a03;
+    }
+    .hw-content {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    .hw-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .hw-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      flex: 1;
+    }
+    .hw-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 8px;
+      color: var(--text-muted);
+    }
+
+    /* Expenditure Tier Levels */
+    .expenditure-tier-bar {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+    .tier-btn {
+      flex: 1;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: #1e293b;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .tier-btn:hover {
+      background: #334155;
+      color: #fff;
+    }
+    .tier-btn.active.lvl1 {
+      background: linear-gradient(135deg, #065f46, #047857);
+      border-color: #10b981;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(16,185,129,0.3);
+    }
+    .tier-btn.active.lvl2 {
+      background: linear-gradient(135deg, #b45309, #d97706);
+      border-color: #f59e0b;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(245,158,11,0.3);
+    }
+    .tier-btn.active.lvl3 {
+      background: linear-gradient(135deg, #6b21a8, #7e22ce);
+      border-color: #a855f7;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(168,85,247,0.3);
+    }
+    .tier-split-box {
+      background: #090d16;
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 20px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 40px;
+      background: rgba(11, 15, 25, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand-wrap">
+      <div class="qcu-badge">QCU NOVALICHES CAMPUS</div>
+      <div>
+        <div class="brand-title">EcoStep QCU · Kinetic Floor Harvester</div>
+        <div class="brand-sub">
+          <span>AR101 Computer Architecture & Organization</span>
+          <span>•</span>
+          <span style="color:var(--accent-teal);">Upcycled Waste Eco-Bricks + PZT Matrix</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="togglePresenterMode()">
+        <span>📺 Fullscreen Presentation</span>
+      </button>
+      <a class="btn btn-accent" href="QCU_Piezoelectric_Floor_Generator_Research_and_SRS.md" target="_blank">
+        <span>📄 Open Research SRS</span>
+      </a>
+      <a class="btn" href="piezo_floor_blueprint_schematic.svg" target="_blank">
+        <span>📐 2D CAD Blueprint</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <div class="app-container">
+
+    <!-- SHIFT TRAFFIC FLOW MODIFIER BAR -->
+    <div class="shift-bar">
+      <div class="shift-title">
+        <span>🚶‍♂️ Campus Rush Shift Modifier:</span>
+        <span style="font-size:12px; color:var(--accent-cyan); font-weight:normal;" id="shift-status-text">Shift 1: Morning Influx (AM Class Entry)</span>
+      </div>
+      <div class="shift-tabs">
+        <button class="shift-btn active" id="btn-shift-am" onclick="setShift('am')">
+          🌅 1. AM Entry (1,400 Students)
+        </button>
+        <button class="shift-btn" id="btn-shift-midday" onclick="setShift('midday')">
+          🔄 2. Midday Rush (AM Out + PM In · 2,200 Students)
+        </button>
+        <button class="shift-btn pm-out" id="btn-shift-pm" onclick="setShift('pm')">
+          🌙 3. PM Departure & Night Lights (1,600 Students)
+        </button>
+        <button class="shift-btn auto-cycle" id="btn-shift-auto" onclick="toggleAuto24HourCycle()">
+          🔁 24h Full Day Cycle (7,800 Steps Total)
+        </button>
+      </div>
+    </div>
+
+    <!-- HERO PANEL: INFINITE WALKING ANIMATION & REAL-TIME TELEMETRY -->
+    <div class="hero-panel">
+      <!-- Left: Interactive Canvas -->
+      <div class="canvas-card">
+        <div class="canvas-header">
+          <div style="font-weight:600; color:#cbd5e1; display:flex; align-items:center; gap:8px;">
+            <span style="width:8px; height:8px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 8px #10b981;"></span>
+            LIVE KINETIC TRANSDUCTION SIMULATION
+          </div>
+          <div style="color:var(--accent-cyan); font-size:11px;" id="cadence-display">100 Steps/Min · AM Entry Rush</div>
+        </div>
+
+        <canvas id="walkCanvas"></canvas>
+
+        <div class="walk-controls">
+          <div style="display:flex; gap:8px;">
+            <button class="btn" id="btn-playpause" onclick="toggleWalking()">⏸️ Pause</button>
+            <button class="btn btn-accent" onclick="manualFootstep()">👞 Single Footstep Strike</button>
+          </div>
+
+          <div class="slider-group">
+            <span>Student Weight:</span>
+            <input type="range" id="weightSlider" min="45" max="95" value="60" oninput="updateWeight(this.value)">
+            <span id="weightVal" style="font-family:'JetBrains Mono'; font-weight:700; color:#fff;">60 kg</span>
+          </div>
+
+          <div class="slider-group">
+            <span>Pace:</span>
+            <input type="range" id="paceSlider" min="40" max="160" value="100" oninput="updatePace(this.value)">
+            <span id="paceVal" style="font-family:'JetBrains Mono'; font-weight:700; color:#fff;">100 spm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Real-time Live Telemetry -->
+      <div style="display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+        <div class="kpi-grid">
+          <div class="kpi-box cyan">
+            <div class="kpi-label">Instantaneous Peak Voltage</div>
+            <div class="kpi-value" id="kpi-volt">0.0 <span style="font-size:14px; font-weight:normal; color:#94a3b8;">V</span></div>
+            <div class="kpi-meta">Schottky Rectified AC to DC Peak</div>
+          </div>
+          <div class="kpi-box emerald">
+            <div class="kpi-label">Bus Capacitor Rail</div>
+            <div class="kpi-value" id="kpi-cap">0.00 <span style="font-size:14px; font-weight:normal; color:#94a3b8;">V</span></div>
+            <div class="kpi-meta">470 µF Low-ESR Reservoir (3.3V Reg)</div>
+          </div>
+          <div class="kpi-box amber">
+            <div class="kpi-label">Harvested Kinetic Energy</div>
+            <div class="kpi-value" id="kpi-joules">0.00 <span style="font-size:14px; font-weight:normal; color:#94a3b8;">mJ</span></div>
+            <div class="kpi-meta">Shift Footsteps: <strong id="kpi-steps" style="color:#fff;">0</strong></div>
+          </div>
+          <div class="kpi-box peso">
+            <div class="kpi-label">Meralco Equivalent Savings</div>
+            <div class="kpi-value" style="color:var(--peso-green);" id="kpi-peso">₱ 0.0000</div>
+            <div class="kpi-meta">Baseline Rate: ₱12.50 / kWh</div>
+          </div>
+        </div>
+
+        <!-- Shift Live Analysis Box -->
+        <div style="background:rgba(15,23,42,0.7); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px 16px; font-size:11px; color:#cbd5e1; line-height:1.4;" id="shift-summary-box">
+          <strong style="color:var(--accent-teal);">Active Shift Parameter:</strong> <strong style="color:#fff;">AM Class Entry (6:30 AM - 8:30 AM)</strong>. Inbound pedestrian rush through the QCU main sidewalk gate. 1,400 students yield approx <strong style="color:#f59e0b;">2,100 foot strikes</strong>, priming the campus battery storage bank for afternoon operations.
+        </div>
+      </div>
+    </div>
+
+    <!-- POPULATION & STEPPER RUNTIME ENGINE (NEW SECTION!) -->
+    <div class="pop-engine-card">
+      <div class="section-title" style="margin-bottom:4px;">
+        <span>Population & Stepper Dynamo Sizing Engine</span>
+        <span class="badge" style="background:rgba(16,185,129,0.15); color:#34d399; border-color:#10b981;">Real-World Hours & Minutes Output</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-secondary); margin-top:-10px;">
+        Adjust campus pedestrian population and transducer gear configuration to calculate exact minutes and hours of usable energy across phone charging, streetlighting, power outlets, and campus SOS emergency boxes.
+      </div>
+
+      <!-- Controls: Population & Stepper Multipliers -->
+      <div class="pop-controls-grid">
+        <!-- Population Slider -->
+        <div class="pop-slider-block">
+          <div class="pop-label-row">
+            <span>🚶‍♂️ Campus Population Foot Traffic:</span>
+            <span id="pop-display" style="font-family:'JetBrains Mono'; font-weight:700; color:var(--accent-cyan);">2,500 Students</span>
+          </div>
+          <input type="range" class="slider-main" id="popSlider" min="100" max="12000" step="100" value="2500" oninput="calculatePopulationEngine()">
+          
+          <div class="preset-buttons" style="margin-top:4px;">
+            <button class="preset-btn" onclick="setPopPreset(500)">500 (Annex)</button>
+            <button class="preset-btn" onclick="setPopPreset(1400)">1,400 (AM Entry)</button>
+            <button class="preset-btn active" id="pop-btn-2500" onclick="setPopPreset(2500)">2,500 (Average Daily)</button>
+            <button class="preset-btn" onclick="setPopPreset(5000)">5,000 (Full Day)</button>
+            <button class="preset-btn" onclick="setPopPreset(10000)">10,000 (Peak Week)</button>
+          </div>
+        </div>
+
+        <!-- Steps per person on grid -->
+        <div class="pop-slider-block">
+          <div class="pop-label-row">
+            <span>👣 Average Steps / Student on Grid:</span>
+            <span id="steps-per-person-display" style="font-family:'JetBrains Mono'; font-weight:700; color:#fff;">2.5 Steps</span>
+          </div>
+          <input type="range" class="slider-main" id="stepsPerPersonSlider" min="1.0" max="5.0" step="0.5" value="2.5" oninput="calculatePopulationEngine()">
+          <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">
+            Across a 4x4 platform (1.2m length), average stride length yields 2 to 3 heel strikes.
+          </div>
+        </div>
+
+        <!-- Transducer Dynamo Mode Toggle -->
+        <div class="pop-slider-block">
+          <div class="pop-label-row">
+            <span>⚙️ Generation Mechanism:</span>
+          </div>
+          <div class="transducer-toggle">
+            <button class="trans-btn active" id="btn-trans-hybrid" onclick="setTransducerMode('hybrid')">
+              ⚙️ Hybrid Dynamo (1.2 J)
+            </button>
+            <button class="trans-btn" id="btn-trans-piezo" onclick="setTransducerMode('piezo')">
+              ⚡ Pure Piezo (1.5 mJ)
+            </button>
+          </div>
+          <div style="font-size:10px; color:var(--text-muted); margin-top:4px;" id="trans-note">
+            Capstone Mode: PZT + salvaged e-waste stepper motor dynamos producing ~1.2 Joules / step.
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Calculation Header Summary -->
+      <div style="background:#090d16; border-radius:10px; padding:12px 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div style="font-size:12px; color:#cbd5e1;">
+          Total Daily Steps: <strong style="color:var(--accent-cyan); font-size:14px;" id="pop-total-steps">6,250 Steps</strong>
+          <span style="margin:0 8px; color:#475569;">|</span>
+          Total Accumulated Energy: <strong style="color:#10b981; font-size:14px;" id="pop-total-joules">7,500.0 Joules</strong>
+          <span style="font-size:11px; color:#94a3b8;" id="pop-total-wh">(2.08 Watt-Hours)</span>
+        </div>
+        <div style="font-size:12px; color:var(--peso-green); font-family:'JetBrains Mono'; font-weight:700;" id="pop-total-pesos">
+          Equivalent Savings: ₱ 0.0260 Meralco
+        </div>
+      </div>
+
+      <!-- The 4 Core Output Runtime Cards -->
+      <div class="runtime-deck">
+        <!-- 1. Phone Charging -->
+        <div class="runtime-card">
+          <div class="runtime-header">
+            <span style="font-size:16px;">📱</span>
+            <span>Phone 5V Charging</span>
+          </div>
+          <div class="runtime-display">
+            <span class="runtime-val" id="rt-phone-val" style="color:#f43f5e;">25</span>
+            <span class="runtime-unit" id="rt-phone-unit">Minutes</span>
+          </div>
+          <div class="runtime-sub" id="rt-phone-sub">
+            Continuous 5V 1A (5W) Fast Charge.<br>
+            Emergency 15-min top-ups: <strong style="color:#fff;" id="rt-phone-emerg">1.7 Students</strong>.<br>
+            Full 4000mAh phones: <strong style="color:#fff;" id="rt-phone-full">0.14 Full Recharge</strong>.
+          </div>
+        </div>
+
+        <!-- 2. Streetlight / Pathway Lamps -->
+        <div class="runtime-card">
+          <div class="runtime-header">
+            <span style="font-size:16px;">💡</span>
+            <span>Streetlights & Lamps</span>
+          </div>
+          <div class="runtime-display">
+            <span class="runtime-val" id="rt-light-val" style="color:#f59e0b;">41</span>
+            <span class="runtime-unit" id="rt-light-unit">Minutes</span>
+          </div>
+          <div class="runtime-sub" id="rt-light-sub">
+            Powers a <strong>3W LED Pathway Corridor Lamp</strong>.<br>
+            Or <strong>10W Campus Streetlamp</strong> for: <strong style="color:#fff;" id="rt-light-10w">12.5 Mins</strong>.<br>
+            Covers dusk peak exit walk.
+          </div>
+        </div>
+
+        <!-- 3. Free Power Outlet (E-Bench) -->
+        <div class="runtime-card">
+          <div class="runtime-header">
+            <span style="font-size:16px;">🔌</span>
+            <span>Free Power Outlet Hub</span>
+          </div>
+          <div class="runtime-display">
+            <span class="runtime-val" id="rt-outlet-val" style="color:#10b981;">50</span>
+            <span class="runtime-unit" id="rt-outlet-unit">Minutes</span>
+          </div>
+          <div class="runtime-sub" id="rt-outlet-sub">
+            Powers a <strong>2.5W Campus Pocket Wi-Fi</strong>.<br>
+            Or <strong>4W Portable Electric Fan</strong> for: <strong style="color:#fff;" id="rt-outlet-fan">31.2 Mins</strong>.<br>
+            Student e-bench station.
+          </div>
+        </div>
+
+        <!-- 4. Campus SOS Call Box -->
+        <div class="runtime-card">
+          <div class="runtime-header">
+            <span style="font-size:16px;">🚨</span>
+            <span>Campus SOS Call Box</span>
+          </div>
+          <div class="runtime-display">
+            <span class="runtime-val" id="rt-sos-val" style="color:#38bdf8;">4.2</span>
+            <span class="runtime-unit" id="rt-sos-unit">Hours</span>
+          </div>
+          <div class="runtime-sub" id="rt-sos-sub">
+            Continuous <strong>0.5W Standby Security Sentry</strong>.<br>
+            Or <strong>5W Two-Way Emergency Voice Intercom</strong> for: <strong style="color:#fff;" id="rt-sos-active">25.0 Mins</strong>.
+          </div>
+        </div>
+      </div>
+
+      <!-- Population Sizing Reference Table -->
+      <div style="background:#0b1120; border-radius:10px; padding:14px 16px;">
+        <div style="font-size:12px; font-weight:700; color:#e2e8f0; margin-bottom:8px;">
+          📋 Population vs. Runtime Reference Chart (Hybrid Dynamo Target):
+        </div>
+        <table class="pop-table">
+          <thead>
+            <tr>
+              <th>Campus Foot Traffic Scenario</th>
+              <th>Total Footsteps</th>
+              <th>Energy Harvested</th>
+              <th>📱 Phone Charging (5W)</th>
+              <th>💡 3W Pathway Lamp</th>
+              <th>🔌 2.5W Pocket Wi-Fi</th>
+              <th>🚨 0.5W SOS Standby</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>500 Students</strong> (Small Corridor / Annex)</td>
+              <td>1,250 steps</td>
+              <td>1,500 J (0.42 Wh)</td>
+              <td>5.0 Minutes</td>
+              <td>8.3 Minutes</td>
+              <td>10.0 Minutes</td>
+              <td>50 Minutes</td>
+            </tr>
+            <tr>
+              <td><strong>1,400 Students</strong> (AM Entry Shift)</td>
+              <td>3,500 steps</td>
+              <td>4,200 J (1.17 Wh)</td>
+              <td>14.0 Minutes</td>
+              <td>23.3 Minutes</td>
+              <td>28.0 Minutes</td>
+              <td>2.3 Hours</td>
+            </tr>
+            <tr style="background:rgba(56,189,248,0.08); font-weight:600;">
+              <td><strong>2,500 Students</strong> (QCU Daily Sidewalk Average)</td>
+              <td>6,250 steps</td>
+              <td>7,500 J (2.08 Wh)</td>
+              <td style="color:#f43f5e;">25.0 Minutes</td>
+              <td style="color:#f59e0b;">41.7 Minutes</td>
+              <td style="color:#10b981;">50.0 Minutes</td>
+              <td style="color:#38bdf8;">4.2 Hours</td>
+            </tr>
+            <tr>
+              <td><strong>5,000 Students</strong> (Full Campus AM + PM Day)</td>
+              <td>12,500 steps</td>
+              <td>15,000 J (4.17 Wh)</td>
+              <td>50.0 Minutes</td>
+              <td>1.4 Hours</td>
+              <td>1.7 Hours</td>
+              <td>8.3 Hours</td>
+            </tr>
+            <tr>
+              <td><strong>10,000 Students</strong> (Midterms / Sports Fest Week)</td>
+              <td>25,000 steps</td>
+              <td>30,000 J (8.33 Wh)</td>
+              <td style="color:#4ade80;">1.7 Hours</td>
+              <td style="color:#4ade80;">2.8 Hours</td>
+              <td style="color:#4ade80;">3.3 Hours</td>
+              <td style="color:#4ade80;">16.7 Hours</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REAL-WORLD PURPOSE & CAMPUS UTILITY NODES -->
+    <div>
+      <div class="section-title">
+        <span>Real-World Campus Purpose & Public Utility Stations</span>
+        <span class="badge">Where Does This Energy Go?</span>
+      </div>
+
+      <div class="purpose-deck">
+        <!-- Station 1: Free Emergency Phone Kiosk -->
+        <div class="purpose-card">
+          <div class="purpose-icon" style="background:rgba(244, 63, 94, 0.15); color:#fda4af;">📱</div>
+          <div class="purpose-title">Free Phone Charging Kiosk</div>
+          <div class="purpose-desc">
+            Positioned at the QCU Gate waiting shed. Provides emergency 5V 2A USB charging for stranded students with dead batteries needing to call family or book Grab / JoyRide / Angkas rides home.
+          </div>
+          <div class="purpose-kpi">
+            <span>Buffer Output:</span>
+            <strong style="color:#38bdf8;" id="node-phone-stat">12.5% Daily Reserve</strong>
+          </div>
+        </div>
+
+        <!-- Station 2: Night Sidewalk Streetlights -->
+        <div class="purpose-card">
+          <div class="purpose-icon" style="background:rgba(245, 158, 11, 0.15); color:#fcd34d;">💡</div>
+          <div class="purpose-title">Night Sidewalk Streetlights</div>
+          <div class="purpose-desc">
+            Illuminates dark walkways between the gate, admin corridors, and cafeteria during PM class dismissal (6:00 PM – 9:00 PM) without consuming campus power grid electricity.
+          </div>
+          <div class="purpose-kpi">
+            <span>Night Operation:</span>
+            <strong style="color:#10b981;" id="node-light-stat">2.4 Hours Sustained</strong>
+          </div>
+        </div>
+
+        <!-- Station 3: Free Student Power Outlet / E-Bench -->
+        <div class="purpose-card">
+          <div class="purpose-icon" style="background:rgba(16, 185, 129, 0.15); color:#6ee7b7;">🔌</div>
+          <div class="purpose-title">Free Student Power Outlet</div>
+          <div class="purpose-desc">
+            A public low-voltage charging bench supporting pocket Wi-Fi routers, student power banks, emergency flashlights, and portable fans during tropical heatwaves or campus power interruptions.
+          </div>
+          <div class="purpose-kpi">
+            <span>Regulated Rail:</span>
+            <strong style="color:var(--peso-green);">5V / 12V DC Hub</strong>
+          </div>
+        </div>
+
+        <!-- Station 4: Emergency SOS Beacon & Wi-Fi Node -->
+        <div class="purpose-card">
+          <div class="purpose-icon" style="background:rgba(56, 189, 248, 0.15); color:#7dd3fc;">🚨</div>
+          <div class="purpose-title">Campus SOS Call Box & Wi-Fi</div>
+          <div class="purpose-desc">
+            Powers an autonomous emergency intercom and IoT campus mesh network transmitter on perimeter sidewalks without expensive high-voltage trenching through university concrete grounds.
+          </div>
+          <div class="purpose-kpi">
+            <span>Security Status:</span>
+            <strong style="color:#38bdf8;">24/7 Standby Mode</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARISON & ACADEMIC FEASIBILITY MATRIX -->
+    <div>
+      <div class="section-title">
+        <span>Academic Scalability Matrix</span>
+        <span class="badge">1x1 vs 2x2 vs 4x4 Grid Scaler</span>
+      </div>
+
+      <!-- Matrix Selection Cards -->
+      <div class="matrix-selector-bar">
+        <div class="matrix-card" id="card-1x1" onclick="selectGrid('1x1')">
+          <div class="matrix-header">
+            <div class="matrix-name">1x1 Single Tile</div>
+            <span class="matrix-tag">LAB PROTOTYPE</span>
+          </div>
+          <div class="matrix-specs">
+            <div>• Dimensions: <strong>300mm x 300mm</strong></div>
+            <div>• Transducers: <strong>16 PZT-5A 35mm Discs</strong></div>
+            <div>• Energy / Step: <strong>~0.75 mJ - 1.2 mJ</strong></div>
+            <div>• Focus: <strong>AR101 Direct LED Flash & ADC Telemetry</strong></div>
+          </div>
+        </div>
+
+        <div class="matrix-card active" id="card-2x2" onclick="selectGrid('2x2')">
+          <div class="matrix-header">
+            <div class="matrix-name">2x2 Sidewalk Grid (4 Tiles)</div>
+            <span class="matrix-tag">PROPOSED DEPLOYMENT</span>
+          </div>
+          <div class="matrix-specs">
+            <div>• Dimensions: <strong>600mm x 600mm</strong></div>
+            <div>• Transducers: <strong>64 PZT-5A Discs (4 clusters)</strong></div>
+            <div>• Energy / Step: <strong>~3.0 mJ - 4.8 mJ</strong></div>
+            <div>• Focus: <strong>QCU Entrance Turnstiles & LED Markers</strong></div>
+          </div>
+        </div>
+
+        <div class="matrix-card" id="card-4x4" onclick="selectGrid('4x4')">
+          <div class="matrix-header">
+            <div class="matrix-name">4x4 Platform (16 Tiles)</div>
+            <span class="matrix-tag">CAPSTONE VISION</span>
+          </div>
+          <div class="matrix-specs">
+            <div>• Dimensions: <strong>1200mm x 1200mm</strong></div>
+            <div>• Transducers: <strong>256 Discs + Hybrid Dynamos</strong></div>
+            <div>• Energy / Step: <strong>~12.0 mJ - 1.2 Joules</strong></div>
+            <div>• Focus: <strong>5V Regulated Phone Charging Station</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Stepper & Output Comparison -->
+      <div class="comparison-grid">
+        <!-- Stepper Simulation -->
+        <div class="stepper-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; font-size:13px; color:#f1f5f9;">Simulate Student Foot Traffic Volume</span>
+            <span style="font-family:'JetBrains Mono'; font-weight:700; color:var(--accent-cyan);" id="traffic-steps-display">2,500 Steps</span>
+          </div>
+
+          <input type="range" class="slider-main" id="trafficSlider" min="1" max="10000" value="2500" oninput="updateTraffic(this.value)">
+
+          <div class="preset-buttons">
+            <button class="preset-btn" onclick="setTrafficPreset(1)">1 Step (Instant)</button>
+            <button class="preset-btn" onclick="setTrafficPreset(10)">10 Steps (Quick Pass)</button>
+            <button class="preset-btn" onclick="setTrafficPreset(100)">100 Steps (One Batch)</button>
+            <button class="preset-btn active" id="btn-preset-2500" onclick="setTrafficPreset(2500)">2,500 (Daily Students)</button>
+            <button class="preset-btn" onclick="setTrafficPreset(5000)">5,000 (Full Day)</button>
+            <button class="preset-btn" onclick="setTrafficPreset(10000)">10,000 (Weekly Peak)</button>
+          </div>
+
+          <!-- Harvested Metrics Output Card -->
+          <div style="background:#111827; border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:16px; display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; text-align:center;">
+            <div>
+              <div style="font-size:10px; color:#94a3b8; font-weight:600;">TOTAL HARVESTED</div>
+              <div style="font-family:'JetBrains Mono'; font-size:1.3rem; font-weight:700; color:#38bdf8;" id="metric-joules">3.00 J</div>
+              <div style="font-size:10px; color:#64748b;">(0.0008 Wh)</div>
+            </div>
+            <div>
+              <div style="font-size:10px; color:#94a3b8; font-weight:600;">EQUIVALENT RUNTIME</div>
+              <div style="font-family:'JetBrains Mono'; font-size:1.3rem; font-weight:700; color:#10b981;" id="metric-runtime">50.0 s</div>
+              <div style="font-size:10px; color:#64748b;">Ultra-Bright LED</div>
+            </div>
+            <div>
+              <div style="font-size:10px; color:#94a3b8; font-weight:600;">MONEY SAVED (PESOS)</div>
+              <div style="font-family:'JetBrains Mono'; font-size:1.3rem; font-weight:700; color:var(--peso-green);" id="metric-pesos">₱ 0.010</div>
+              <div style="font-size:10px; color:#64748b;">Grid Equivalent</div>
+            </div>
+          </div>
+
+          <!-- Energy Curve Chart -->
+          <div style="height:140px; position:relative;">
+            <canvas id="energyChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Practical Electrical Loads: What can this actually power? -->
+        <div class="stepper-card">
+          <div style="font-weight:700; font-size:13px; color:#f1f5f9; display:flex; justify-content:space-between;">
+            <span>Load Attainability Status</span>
+            <span style="font-size:11px; color:#94a3b8;">Academic Proof</span>
+          </div>
+
+          <div class="loads-deck">
+            <!-- Load 1: 5mm LED Bulb -->
+            <div class="load-item">
+              <div class="load-item-header">
+                <span style="color:#fff;">💡 5mm LED Bulb Flash</span>
+                <span class="badge" style="background:#065f46; color:#34d399; font-size:10px;" id="badge-led">100% ATTAINABLE</span>
+              </div>
+              <div class="load-progress-bar">
+                <div class="load-progress-fill" id="bar-led" style="width:100%; background:#10b981;"></div>
+              </div>
+              <div class="load-metric">
+                <span>Required: <strong>1.5 mJ</strong></span>
+                <span id="stat-led">Requires: <strong>1 - 2 Steps</strong></span>
+              </div>
+            </div>
+
+            <!-- Load 2: Night Pathway Marker -->
+            <div class="load-item">
+              <div class="load-item-header">
+                <span style="color:#fff;">🚨 Night Pathway LED (1 Hr)</span>
+                <span class="badge" style="background:#1e3a8a; color:#60a5fa; font-size:10px;" id="badge-pathway">BUFFER READY</span>
+              </div>
+              <div class="load-progress-bar">
+                <div class="load-progress-fill" id="bar-pathway" style="width:75%; background:#38bdf8;"></div>
+              </div>
+              <div class="load-metric">
+                <span>Required: <strong>360 Joules</strong></span>
+                <span id="stat-pathway">Requires: <strong>~300 Steps</strong></span>
+              </div>
+            </div>
+
+            <!-- Load 3: Arduino Nano / LCD Bus -->
+            <div class="load-item">
+              <div class="load-item-header">
+                <span style="color:#fff;">📟 Arduino MCU (5 Mins)</span>
+                <span class="badge" style="background:#78350f; color:#fbbf24; font-size:10px;" id="badge-arduino">POWERED</span>
+              </div>
+              <div class="load-progress-bar">
+                <div class="load-progress-fill" id="bar-arduino" style="width:90%; background:#f59e0b;"></div>
+              </div>
+              <div class="load-metric">
+                <span>Required: <strong>150 Joules</strong></span>
+                <span id="stat-arduino">Requires: <strong>~125 Steps</strong></span>
+              </div>
+            </div>
+
+            <!-- Load 4: Mobile Phone 5V Emergency Charge -->
+            <div class="load-item">
+              <div class="load-item-header">
+                <span style="color:#fff;">📱 Phone 5V Top-Up (1%)</span>
+                <span class="badge" style="background:#4c0519; color:#fda4af; font-size:10px;" id="badge-phone">CAPSTONE BUFFER</span>
+              </div>
+              <div class="load-progress-bar">
+                <div class="load-progress-fill" id="bar-phone" style="width:45%; background:#f43f5e;"></div>
+              </div>
+              <div class="load-metric">
+                <span>Required: <strong>532 Joules</strong></span>
+                <span id="stat-phone">Requires: <strong>~440 Steps (Hybrid)</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#090d16; border-radius:8px; padding:10px 12px; font-size:11px; color:var(--text-secondary); line-height:1.4;">
+            <strong style="color:#f59e0b;">Realistic Engineering Truth:</strong> Directly charging a smartphone on 1 person’s footstep is physically impossible. However, collecting the cumulative foot strikes of <strong>2,500 QCU students</strong> into an intermediary 18650 lithium battery buffer produces enough power daily to top up multiple students' phones for emergency calls!
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D CAD EXPLODED VIEW & FINANCIAL BREAKDOWN IN PESOS -->
+    <div class="two-col-layout">
+      <!-- 3D CAD Stackup Viewport -->
+      <div class="cad-box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:700; font-size:14px; color:#f1f5f9;">3D Exploded Tile Stackup (CAD Prototype)</span>
+          <span class="badge" id="cad-explode-label" style="font-size:10px; color:#38bdf8; background:#0c4a6e; padding:3px 8px; border-radius:4px;">Exploded (100%)</span>
+        </div>
+
+        <div class="cad-viewport" id="cadViewport">
+          <div class="cad-stage" id="cadStage">
+            <!-- 1. Top Recycled Brick -->
+            <div class="cad-layer cad-tread" id="layer1">
+              <span>1. RECYCLED HDPE BRICK<br>(Melted Bottle Caps)</span>
+            </div>
+            <!-- 2. Force Concentrator Studs -->
+            <div class="cad-layer cad-studs" id="layer2">
+              <div class="cad-stud"></div><div class="cad-stud"></div><div class="cad-stud"></div><div class="cad-stud"></div>
+              <div class="cad-stud"></div><div class="cad-stud"></div><div class="cad-stud"></div><div class="cad-stud"></div>
+              <div class="cad-stud"></div><div class="cad-stud"></div><div class="cad-stud"></div><div class="cad-stud"></div>
+              <div class="cad-stud"></div><div class="cad-stud"></div><div class="cad-stud"></div><div class="cad-stud"></div>
+            </div>
+            <!-- 3. PZT Piezo Array -->
+            <div class="cad-layer cad-piezo" id="layer3">
+              <div class="cad-disc"></div><div class="cad-disc"></div><div class="cad-disc"></div><div class="cad-disc"></div>
+              <div class="cad-disc"></div><div class="cad-disc"></div><div class="cad-disc"></div><div class="cad-disc"></div>
+              <div class="cad-disc"></div><div class="cad-disc"></div><div class="cad-disc"></div><div class="cad-disc"></div>
+              <div class="cad-disc"></div><div class="cad-disc"></div><div class="cad-disc"></div><div class="cad-disc"></div>
+            </div>
+            <!-- 4. Base Chassis -->
+            <div class="cad-layer cad-base" id="layer4">
+              <span>4. SUB-CHASSIS & SPRINGS<br>(Recycled Tray)</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+          <button class="btn" style="flex:1;" onclick="toggleCadExplode()">💥 Toggle Explode / Assemble</button>
+          <button class="btn" onclick="resetCadView()">🔄 Reset Angle</button>
+          <button class="btn" onclick="rotateCad(-30)">↶ Left</button>
+          <button class="btn" onclick="rotateCad(30)">↷ Right</button>
+        </div>
+      </div>
+
+      <!-- Financial & Scrap BOM (In Philippine Pesos ₱) -->
+      <div class="cad-box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-weight:700; font-size:14px; color:#f1f5f9;">Prototype Expenditure Levels & Budget</span>
+          <span class="badge" id="tier-status-badge" style="background:#064e3b; color:#34d399; font-size:10px; padding:3px 8px; border-radius:4px;">RECOMMENDED FOR AR101 NOW</span>
+        </div>
+
+        <!-- Tier Switcher Tabs -->
+        <div class="expenditure-tier-bar">
+          <button class="tier-btn active lvl1" id="btn-tier-1" onclick="setExpenditureLevel(1)">
+            🟢 Level 1: Lab PoC (Spend Now)
+          </button>
+          <button class="tier-btn" id="btn-tier-2" onclick="setExpenditureLevel(2)">
+            🟡 Level 2: Semi-Autonomous Buffer
+          </button>
+          <button class="tier-btn" id="btn-tier-3" onclick="setExpenditureLevel(3)">
+            🟣 Level 3: Full Capstone Grid
+          </button>
+        </div>
+
+        <!-- Member Split Breakdown Card -->
+        <div class="tier-split-box">
+          <div>
+            <div style="font-size:10px; color:#94a3b8; font-weight:600;">TOTAL BUDGET</div>
+            <div style="font-family:'JetBrains Mono'; font-size:1.3rem; font-weight:700; color:#4ade80;" id="tier-total-cost">₱ 140.00 MAX</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:10px; color:#94a3b8; font-weight:600;">PER GROUP MEMBER (4 PAX)</div>
+            <div style="font-family:'JetBrains Mono'; font-size:1.15rem; font-weight:700; color:var(--accent-cyan);" id="tier-member-cost">₱ 35.00 / student</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; color:#94a3b8; font-weight:600;">TARGET TIMELINE</div>
+            <div style="font-size:11px; font-weight:700; color:#fff;" id="tier-timeline">2-3 Weeks (AR101)</div>
+          </div>
+        </div>
+
+        <!-- Dynamic BOM Table -->
+        <table class="cost-table">
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Material Origin / Scrap Source</th>
+              <th>Market Price</th>
+              <th>Our Cost (₱)</th>
+            </tr>
+          </thead>
+          <tbody id="tier-table-body">
+            <!-- Dynamically populated by JS -->
+          </tbody>
+        </table>
+
+        <!-- Market Comparison Note -->
+        <div style="background:#0f172a; border-radius:8px; padding:10px 14px; font-size:11px; color:#cbd5e1; border-left:3px solid var(--peso-green);" id="tier-market-note">
+          <strong>Commercial vs. QCU EcoStep:</strong> Commercial imported tiles (like Pavegen) cost upwards of <span style="color:#f43f5e; font-weight:700;">₱150,000 to ₱300,000 per m²</span>. The QCU EcoStep achieves proof-of-concept for just <span style="color:#4ade80; font-weight:700;">₱140.00</span> per tile by leveraging 100% campus waste!
+        </div>
+      </div>
+    </div>
+
+    <!-- HARDWARE BUILD REQUIREMENTS & STOCK PHOTO GALLERY -->
+    <div>
+      <div class="section-title">
+        <span>Hardware Build Requirements & Material Sourcing</span>
+        <span class="badge" style="background:rgba(45,212,191,0.15); color:#2dd4bf; border-color:#14b8a6;">Physical Components & Scrap Sourcing Gallery</span>
+      </div>
+
+      <div class="hardware-gallery-grid">
+        <!-- 1. Recycled Plastic Brick -->
+        <div class="hw-card">
+          <div class="hw-img-wrap">
+            <img src="assets/recycled_plastic_brick.jpg" alt="Melted HDPE Recycled Plastic Brick Tile" class="hw-img">
+            <span class="hw-tag zero">₱0.00 RECYCLED</span>
+          </div>
+          <div class="hw-content">
+            <div class="hw-title">1. Recycled HDPE Pavement Brick</div>
+            <div class="hw-desc">
+              Melted and compressed colorful shredded bottle caps collected across QCU campus. Yields a stone-hard, water-resistant 300x300x20mm composite paving slab capable of supporting 800+ Newtons of heel-strike pressure.
+            </div>
+            <div class="hw-meta">
+              <span>Sourcing: Campus Waste Bins</span>
+              <strong style="color:var(--peso-green);">₱ 0.00</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Piezoelectric Discs -->
+        <div class="hw-card">
+          <div class="hw-img-wrap">
+            <img src="assets/piezo_transducer_discs.jpg" alt="PZT-5A Piezoelectric Transducer Discs" class="hw-img">
+            <span class="hw-tag budget">₱140.00 (16 PCS)</span>
+          </div>
+          <div class="hw-content">
+            <div class="hw-title">2. PZT-5A Piezoelectric Discs</div>
+            <div class="hw-desc">
+              35mm brass substrate discs with Lead Zirconate Titanate ceramic cores and pre-soldered leads. Harvests instantaneous 15V - 35V AC spikes via direct mechanical bending and flexural stress.
+            </div>
+            <div class="hw-meta">
+              <span>Sourcing: Shopee / Old Buzzers</span>
+              <strong style="color:var(--accent-amber);">₱ 140.00</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Stepper Motor Dynamo -->
+        <div class="hw-card">
+          <div class="hw-img-wrap">
+            <img src="assets/stepper_motor_dynamo.jpg" alt="Salvaged NEMA Stepper Motor Dynamo" class="hw-img">
+            <span class="hw-tag zero">₱0.00 E-WASTE</span>
+          </div>
+          <div class="hw-content">
+            <div class="hw-title">3. Stepper Motor Micro-Dynamo</div>
+            <div class="hw-desc">
+              Salvaged from discarded office printers and scanners. Coupled to a mini rack-and-pinion gear beneath the tile to generate rotary induction (~1.2 Joules / step) to bridge into 5V mobile phone charging.
+            </div>
+            <div class="hw-meta">
+              <span>Sourcing: University E-Waste</span>
+              <strong style="color:var(--peso-green);">₱ 0.00</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Arduino Telemetry Subsystem -->
+        <div class="hw-card">
+          <div class="hw-img-wrap">
+            <img src="assets/arduino_lcd_circuit.jpg" alt="Arduino Nano with I2C LCD and Rectifier Circuit" class="hw-img">
+            <span class="hw-tag zero">₱0.00 LAB KIT</span>
+          </div>
+          <div class="hw-content">
+            <div class="hw-title">4. AR101 Embedded Controller & Bus</div>
+            <div class="hw-desc">
+              Arduino Nano (ATmega328P) wired to a blue 16x2 I2C LCD character display, full-wave 1N4007 bridge diodes, and 470uF smoothing capacitors. Logs bus telemetry, ADC voltages, and interrupt flags.
+            </div>
+            <div class="hw-meta">
+              <span>Sourcing: AR101 Laboratory Kit</span>
+              <strong style="color:var(--accent-cyan);">₱ 0.00</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AR101 COMPUTER ARCHITECTURE MAPPING -->
+    <div class="cad-box">
+      <div class="section-title" style="margin-bottom:8px;">
+        <span>AR101 Computer Architecture & Organization Integration</span>
+        <span class="badge">Hardware Specifications</span>
+      </div>
+
+      <div class="arch-grid">
+        <div class="arch-card">
+          <h5>1. Hardware Interrupt Line (INT0 / Digital Pin 2)</h5>
+          <p>The mechanical foot strike generates a voltage pulse tripping the external hardware interrupt line. This wakes the ATmega328P CPU from <code>SLEEP_MODE_PWR_DOWN</code> to execute the energy sampling service routine.</p>
+        </div>
+        <div class="arch-card">
+          <h5>2. 10-Bit ADC Data Bus (ADMUX & ADCSRA Registers)</h5>
+          <p>The rectified storage capacitor voltage is sampled across a 10:1 resistor divider into ADC Channel 0. The 10-bit quantized digital word is moved across the internal data bus into CPU registers.</p>
+        </div>
+        <div class="arch-card">
+          <h5>3. Energy Register Arithmetic ($E = \frac{1}{2} C V^2$)</h5>
+          <p>The CPU uses internal multiplication and shift registers to compute instantaneous harvested Joules, tracking cumulative student traffic and energy density over time.</p>
+        </div>
+        <div class="arch-card">
+          <h5>4. Memory-Mapped I2C Bus Peripheral Interface</h5>
+          <p>Telemetry metrics are pushed over the 2-wire serial bus (SDA/SCL) to memory-mapped address <code>0x27</code>, driving the 16x2 LCD display to showcase real-time power metrics.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div style="margin-bottom:6px;"><strong>EcoStep QCU: Kinetic Footstep Floor Energy Harvester</strong> · Academic Hardware Prototype</div>
+    <div>Quezon City University · Department of Information Technology · AR101 Computer Architecture & Organization</div>
+  </footer>
+
+  <!-- APPLICATION LOGIC & VISUAL ANIMATION ENGINE -->
+  <script>
+    // ================= GLOBAL STATE =================
+    let isWalking = true;
+    let studentWeightKg = 60;
+    let walkingPaceSpm = 100; // steps per minute
+    let activeGrid = '2x2';
+    let totalSteps = 0;
+    let instantVolts = 0.0;
+    let capVoltage = 0.0;
+    let totalJoules = 0.0;
+    let gridMultipliers = { '1x1': 1.0, '2x2': 4.0, '4x4': 16.0 };
+
+    // Population Sizing State
+    let currentPopulation = 2500;
+    let stepsPerPerson = 2.5;
+    let transducerMode = 'hybrid'; // 'hybrid' (1.2J) or 'piezo' (0.0015J)
+
+    // Shift Modifier State
+    let currentShift = 'am'; // 'am', 'midday', 'pm'
+    let autoCycleTimer = null;
+    let autoCycleIndex = 0;
+    const shiftConfigs = {
+      am: {
+        name: 'Shift 1: Morning Influx (AM Class Entry)',
+        students: 1400,
+        steps: 2100,
+        pace: 105,
+        direction: 1,
+        summary: '<strong style="color:var(--accent-teal);">Active Shift:</strong> <strong style="color:#fff;">AM Class Entry (6:30 AM - 8:30 AM)</strong>. Inbound pedestrian surge at the QCU main sidewalk gate. 1,400 students yield approx <strong style="color:#f59e0b;">2,100 foot strikes</strong>, initiating the daily battery charging buffer.'
+      },
+      midday: {
+        name: 'Shift 2: Midday Rush (AM Exit + PM Entry Dual Stream)',
+        students: 2200,
+        steps: 3300,
+        pace: 125,
+        direction: 0,
+        summary: '<strong style="color:var(--accent-cyan);">Active Shift:</strong> <strong style="color:#fff;">Midday Peak Rush (11:30 AM - 1:30 PM)</strong>. Peak sidewalk congestion! AM students exiting while PM students enter. 2,200 pedestrians generate <strong style="color:#f59e0b;">3,300 foot strikes</strong>, providing the largest kinetic energy pulse of the day!'
+      },
+      pm: {
+        name: 'Shift 3: PM Departure & Night Lights Activation',
+        students: 1600,
+        steps: 2400,
+        pace: 95,
+        direction: -1,
+        summary: '<strong style="color:var(--accent-amber);">Active Shift:</strong> <strong style="color:#fff;">PM Class Departure (5:00 PM - 8:00 PM)</strong>. Outbound stream toward the gate/transport terminal. 1,600 students generate <strong style="color:#f59e0b;">2,400 foot strikes</strong>, actively sustaining the <strong style="color:#10b981;">Night Sidewalk Streetlights</strong> and <strong style="color:#38bdf8;">Emergency Phone Kiosk</strong>!'
+      }
+    };
+
+    // ================= 1. INFINITE WALKING CANVAS ENGINE =================
+    const canvas = document.getElementById('walkCanvas');
+    const ctx = canvas.getContext('2d');
+    let animFrameId;
+    let walkPhase1 = 0;
+    let walkPhase2 = Math.PI * 0.7;
+    let ripples = [];
+    let energyParticles = [];
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = 280;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function drawScene() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const groundY = 220;
+      const tileWidth = 140;
+      const tileHeight = 22;
+
+      // Draw Perspective Sidewalk Background
+      if (currentShift === 'pm') {
+        ctx.fillStyle = '#050711';
+      } else if (currentShift === 'midday') {
+        ctx.fillStyle = '#0c1322';
+      } else {
+        ctx.fillStyle = '#0a101d';
+      }
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Distant Streetlight Lamp on PM shift
+      if (currentShift === 'pm') {
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width * 0.78, groundY + tileHeight);
+        ctx.lineTo(canvas.width * 0.78, 60);
+        ctx.lineTo(canvas.width * 0.78 - 30, 45);
+        ctx.stroke();
+
+        const grad = ctx.createRadialGradient(canvas.width * 0.78 - 30, 45, 5, canvas.width * 0.78 - 30, 120, 140);
+        grad.addColorStop(0, 'rgba(253, 224, 71, 0.45)');
+        grad.addColorStop(1, 'rgba(253, 224, 71, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(canvas.width * 0.78 - 30, 45, 140, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(canvas.width * 0.78 - 30, 45, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Distant Grid Lines
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.08)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, groundY);
+        ctx.lineTo(x - 50, canvas.height);
+        ctx.stroke();
+      }
+
+      // Draw Sidewalk Tiles Underneath
+      const numTiles = Math.ceil(canvas.width / tileWidth) + 2;
+      const scrollOffset = (walkPhase1 * 40) % tileWidth;
+
+      for (let i = -1; i < numTiles; i++) {
+        const tx = i * tileWidth - scrollOffset;
+
+        ctx.fillStyle = (i % 2 === 0) ? '#0f766e' : '#0d9488';
+        ctx.strokeStyle = '#2dd4bf';
+        ctx.lineWidth = 1.5;
+
+        ctx.beginPath();
+        ctx.roundRect(tx, groundY, tileWidth - 8, tileHeight, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(tx + 20, groundY + tileHeight);
+        ctx.lineTo(tx + 20, groundY + tileHeight + 8);
+        ctx.moveTo(tx + tileWidth - 28, groundY + tileHeight);
+        ctx.lineTo(tx + tileWidth - 28, groundY + tileHeight + 8);
+        ctx.stroke();
+      }
+
+      // Draw Dynamic Shockwave Ripples
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const r = ripples[i];
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(r.x, groundY + 5, r.radius, r.radius * 0.35, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(56, 189, 248, ${r.alpha})`;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+
+        r.radius += 3.5;
+        r.alpha -= 0.035;
+        if (r.alpha <= 0) ripples.splice(i, 1);
+      }
+
+      // Draw Energy Sparks & Particles
+      for (let i = energyParticles.length - 1; i >= 0; i--) {
+        const p = energyParticles[i];
+        ctx.save();
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.03;
+        if (p.alpha <= 0 || p.y < 30) energyParticles.splice(i, 1);
+      }
+
+      // Draw Students based on Active Shift Direction
+      const direction = shiftConfigs[currentShift].direction;
+
+      if (direction === 1) {
+        drawWalkingStudent(canvas.width * 0.45, groundY, walkPhase1, 1, '#38bdf8', '#0284c7');
+      } else if (direction === -1) {
+        drawWalkingStudent(canvas.width * 0.52, groundY, walkPhase1, -1, '#f59e0b', '#d97706');
+      } else {
+        drawWalkingStudent(canvas.width * 0.38, groundY, walkPhase1, 1, '#38bdf8', '#0284c7');
+        drawWalkingStudent(canvas.width * 0.62, groundY, walkPhase2, -1, '#10b981', '#059669');
+      }
+
+      // Advance Walk Cycles
+      if (isWalking) {
+        const speed = (walkingPaceSpm / 100) * 0.06;
+        walkPhase1 += speed;
+        walkPhase2 += speed * 1.05;
+
+        const cycle1 = (walkPhase1 % (Math.PI * 2));
+        if (Math.abs(cycle1 - Math.PI) < speed * 0.6 || Math.abs(cycle1 - (Math.PI * 2)) < speed * 0.6) {
+          triggerStepImpact(canvas.width * 0.45, groundY);
+        }
+
+        if (direction === 0) {
+          const cycle2 = (walkPhase2 % (Math.PI * 2));
+          if (Math.abs(cycle2 - Math.PI) < speed * 0.6 || Math.abs(cycle2 - (Math.PI * 2)) < speed * 0.6) {
+            triggerStepImpact(canvas.width * 0.62, groundY);
+          }
+        }
+      }
+
+      // Telemetry decays
+      if (instantVolts > 0.1) {
+        instantVolts *= 0.93;
+        document.getElementById('kpi-volt').innerHTML = instantVolts.toFixed(1) + ' <span style="font-size:14px; font-weight:normal; color:#94a3b8;">V</span>';
+      }
+      if (capVoltage > 0.02) {
+        capVoltage -= 0.0006;
+        document.getElementById('kpi-cap').innerHTML = capVoltage.toFixed(2) + ' <span style="font-size:14px; font-weight:normal; color:#94a3b8;">V</span>';
+      }
+
+      animFrameId = requestAnimationFrame(drawScene);
+    }
+
+    function drawWalkingStudent(x, y, phase, scaleX, legColor, torsoColor) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scaleX, 1);
+
+      const legLeftAngle = Math.sin(phase) * 0.65;
+      const legRightAngle = Math.sin(phase + Math.PI) * 0.65;
+      const bodyBob = Math.abs(Math.sin(phase * 2)) * 6;
+
+      ctx.lineWidth = 7;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Right Leg
+      ctx.strokeStyle = legColor;
+      ctx.beginPath();
+      ctx.moveTo(0, -65 - bodyBob);
+      const kneeRX = Math.sin(legRightAngle) * 35;
+      const kneeRY = -35 + Math.cos(legRightAngle) * 30 - bodyBob;
+      ctx.lineTo(kneeRX, kneeRY);
+      const footRX = kneeRX + Math.sin(legRightAngle - 0.2) * 35;
+      const footRY = Math.min(0, kneeRY + Math.cos(legRightAngle - 0.2) * 35);
+      ctx.lineTo(footRX, footRY);
+      ctx.stroke();
+
+      // Torso & Backpack
+      ctx.strokeStyle = torsoColor;
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(0, -65 - bodyBob);
+      ctx.lineTo(2, -110 - bodyBob);
+      ctx.stroke();
+
+      ctx.fillStyle = '#0d9488';
+      ctx.beginPath();
+      ctx.roundRect(-14, -105 - bodyBob, 12, 28, 4);
+      ctx.fill();
+
+      // Head
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(4, -125 - bodyBob, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Left Leg
+      ctx.strokeStyle = '#2dd4bf';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.moveTo(0, -65 - bodyBob);
+      const kneeLX = Math.sin(legLeftAngle) * 35;
+      const kneeLY = -35 + Math.cos(legLeftAngle) * 30 - bodyBob;
+      ctx.lineTo(kneeLX, kneeLY);
+      const footLX = kneeLX + Math.sin(legLeftAngle - 0.2) * 35;
+      const footLY = Math.min(0, kneeLY + Math.cos(legLeftAngle - 0.2) * 35);
+      ctx.lineTo(footLX, footLY);
+      ctx.stroke();
+
+      // Arms
+      ctx.strokeStyle = legColor;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(2, -105 - bodyBob);
+      const armLX = Math.sin(legRightAngle) * 25;
+      const armLY = -80 + Math.cos(legRightAngle) * 25 - bodyBob;
+      ctx.lineTo(armLX, armLY);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function triggerStepImpact(x, y) {
+      totalSteps++;
+      document.getElementById('kpi-steps').textContent = totalSteps;
+
+      ripples.push({ x: x, radius: 8, alpha: 0.9 });
+
+      for (let i = 0; i < 6; i++) {
+        energyParticles.push({
+          x: x + (Math.random() * 30 - 15),
+          y: y - 5,
+          vx: (Math.random() - 0.5) * 3,
+          vy: -2 - Math.random() * 4,
+          size: 2 + Math.random() * 3,
+          color: (Math.random() > 0.5) ? '#38bdf8' : '#2dd4bf',
+          alpha: 1.0
+        });
+      }
+
+      const weightForceN = studentWeightKg * 9.81 * 1.35;
+      const baseVolt = (weightForceN / 800) * 32.0;
+      const multiplier = gridMultipliers[activeGrid];
+
+      instantVolts = baseVolt * (0.9 + Math.random() * 0.2);
+      document.getElementById('kpi-volt').innerHTML = instantVolts.toFixed(1) + ' <span style="font-size:14px; font-weight:normal; color:#94a3b8;">V</span>';
+
+      const stepEnergy_mJ = (0.55 * (studentWeightKg / 60)) * multiplier;
+      totalJoules += stepEnergy_mJ;
+      document.getElementById('kpi-joules').innerHTML = totalJoules.toFixed(2) + ' <span style="font-size:14px; font-weight:normal; color:#94a3b8;">mJ</span>';
+
+      capVoltage = Math.min(3.3, capVoltage + (0.35 * (multiplier / 4)));
+      document.getElementById('kpi-cap').innerHTML = capVoltage.toFixed(2) + ' <span style="font-size:14px; font-weight:normal; color:#94a3b8;">V</span>';
+
+      const pesosSaved = (totalJoules / 1000.0) * (12.50 / 3600000.0);
+      document.getElementById('kpi-peso').textContent = '₱ ' + pesosSaved.toFixed(5);
+    }
+
+    // ================= SHIFT MODIFIER HANDLERS =================
+    function setShift(shiftKey) {
+      if (autoCycleTimer) {
+        clearInterval(autoCycleTimer);
+        autoCycleTimer = null;
+        document.getElementById('btn-shift-auto').classList.remove('active');
+        document.getElementById('btn-shift-auto').textContent = '🔁 24h Full Day Cycle (7,800 Steps)';
+      }
+
+      currentShift = shiftKey;
+      document.getElementById('btn-shift-am').classList.toggle('active', shiftKey === 'am');
+      document.getElementById('btn-shift-midday').classList.toggle('active', shiftKey === 'midday');
+      document.getElementById('btn-shift-pm').classList.toggle('active', shiftKey === 'pm');
+
+      const conf = shiftConfigs[shiftKey];
+      document.getElementById('shift-status-text').textContent = conf.name;
+      document.getElementById('shift-summary-box').innerHTML = conf.summary;
+      updatePace(conf.pace);
+      setTrafficPreset(conf.steps);
+
+      if (shiftKey === 'pm') {
+        document.getElementById('node-light-stat').textContent = '3.5 Hours (Active Now)';
+        document.getElementById('node-phone-stat').textContent = 'Ready for Commuters';
+      } else if (shiftKey === 'midday') {
+        document.getElementById('node-phone-stat').textContent = 'Harvesting Fast (+45%)';
+        document.getElementById('node-light-stat').textContent = 'Battery Storing';
+      } else {
+        document.getElementById('node-phone-stat').textContent = '12.5% Baseline';
+        document.getElementById('node-light-stat').textContent = 'Dusk Priming';
+      }
+    }
+
+    function toggleAuto24HourCycle() {
+      const autoBtn = document.getElementById('btn-shift-auto');
+      if (autoCycleTimer) {
+        clearInterval(autoCycleTimer);
+        autoCycleTimer = null;
+        autoBtn.classList.remove('active');
+        autoBtn.textContent = '🔁 24h Full Day Cycle (7,800 Steps)';
+        setShift('am');
+      } else {
+        autoBtn.classList.add('active');
+        autoBtn.textContent = '⏸️ Cycling 24h Campus Shifts...';
+        const shifts = ['am', 'midday', 'pm'];
+        autoCycleIndex = 0;
+        setShift(shifts[autoCycleIndex]);
+
+        autoCycleTimer = setInterval(() => {
+          autoCycleIndex = (autoCycleIndex + 1) % shifts.length;
+          setShift(shifts[autoCycleIndex]);
+        }, 5000);
+      }
+    }
+
+    // Controls
+    function toggleWalking() {
+      isWalking = !isWalking;
+      const btn = document.getElementById('btn-playpause');
+      btn.textContent = isWalking ? '⏸️ Pause' : '▶️ Resume Walk';
+    }
+
+    function manualFootstep() {
+      triggerStepImpact(canvas.width * 0.45, 220);
+    }
+
+    function updateWeight(val) {
+      studentWeightKg = parseFloat(val);
+      document.getElementById('weightVal').textContent = val + ' kg';
+    }
+
+    function updatePace(val) {
+      walkingPaceSpm = parseFloat(val);
+      document.getElementById('paceSlider').value = val;
+      document.getElementById('paceVal').textContent = val + ' spm';
+      const label = val < 70 ? 'Slow Stroll' : (val < 115 ? 'Normal Walk' : 'Brisk Campus Rush');
+      document.getElementById('cadence-display').textContent = `${val} Steps/Min · ${label}`;
+    }
+
+    // ================= POPULATION & STEPPER RUNTIME ENGINE (NEW LOGIC) =================
+    function setPopPreset(pop) {
+      document.getElementById('popSlider').value = pop;
+      document.querySelectorAll('#pop-btn-2500, .pop-slider-block .preset-btn').forEach(b => b.classList.remove('active'));
+      const btn = Array.from(document.querySelectorAll('.pop-slider-block .preset-btn')).find(b => b.textContent.includes(pop.toLocaleString()) || b.textContent.includes(pop));
+      if (btn) btn.classList.add('active');
+      calculatePopulationEngine();
+    }
+
+    function setTransducerMode(mode) {
+      transducerMode = mode;
+      document.getElementById('btn-trans-hybrid').classList.toggle('active', mode === 'hybrid');
+      document.getElementById('btn-trans-piezo').classList.toggle('active', mode === 'piezo');
+      
+      const note = document.getElementById('trans-note');
+      if (mode === 'hybrid') {
+        note.innerHTML = 'Capstone Mode: PZT + salvaged e-waste stepper motor dynamos producing <strong style="color:#fff;">~1.2 Joules / step</strong>.';
+      } else {
+        note.innerHTML = 'Lab Mode: Pure PZT piezoelectric ceramic discs producing <strong style="color:#fff;">~0.0015 Joules (1.5 mJ) / step</strong>.';
+      }
+      calculatePopulationEngine();
+    }
+
+    function calculatePopulationEngine() {
+      currentPopulation = parseInt(document.getElementById('popSlider').value);
+      stepsPerPerson = parseFloat(document.getElementById('stepsPerPersonSlider').value);
+
+      document.getElementById('pop-display').textContent = currentPopulation.toLocaleString() + ' Students';
+      document.getElementById('steps-per-person-display').textContent = stepsPerPerson.toFixed(1) + ' Steps';
+
+      const totalStepsCalc = Math.round(currentPopulation * stepsPerPerson);
+      document.getElementById('pop-total-steps').textContent = totalStepsCalc.toLocaleString() + ' Steps';
+
+      // Energy per step in Joules
+      const energyPerStepJ = (transducerMode === 'hybrid') ? 1.2 : 0.0015;
+      const totalJ = totalStepsCalc * energyPerStepJ;
+      const totalWh = totalJ / 3600.0;
+
+      document.getElementById('pop-total-joules').textContent = (totalJ >= 1000) ? (totalJ / 1000).toFixed(2) + ' kJ' : totalJ.toFixed(1) + ' Joules';
+      document.getElementById('pop-total-wh').textContent = '(' + totalWh.toFixed(2) + ' Watt-Hours)';
+
+      // Meralco Pesos Saved (₱12.50 / kWh)
+      const pesos = (totalJ * (12.50 / 3600000.0));
+      document.getElementById('pop-total-pesos').textContent = 'Equivalent Savings: ₱ ' + pesos.toFixed(4) + ' Meralco';
+
+      // 1. Phone Charging (5W Fast USB Charging, 53,280 Joules per full 4,000 mAh phone)
+      const phoneMinutes = totalJ / (5.0 * 60.0);
+      const fullPhones = totalJ / 53280.0;
+      const emergCalls = totalJ / 1065.0; // 15-min call buffer needs ~1,065 J
+
+      if (phoneMinutes >= 60) {
+        document.getElementById('rt-phone-val').textContent = (phoneMinutes / 60).toFixed(1);
+        document.getElementById('rt-phone-unit').textContent = 'Hours';
+      } else {
+        document.getElementById('rt-phone-val').textContent = phoneMinutes.toFixed(1);
+        document.getElementById('rt-phone-unit').textContent = 'Minutes';
+      }
+      document.getElementById('rt-phone-full').textContent = fullPhones.toFixed(2) + ' Full Recharge';
+      document.getElementById('rt-phone-emerg').textContent = Math.round(emergCalls) + ' Students';
+
+      // 2. Streetlight / Pathway Lamp (3W pathway lamp vs 10W streetlamp)
+      const lampMinutes = totalJ / (3.0 * 60.0);
+      const street10wMins = totalJ / (10.0 * 60.0);
+
+      if (lampMinutes >= 60) {
+        document.getElementById('rt-light-val').textContent = (lampMinutes / 60).toFixed(1);
+        document.getElementById('rt-light-unit').textContent = 'Hours';
+      } else {
+        document.getElementById('rt-light-val').textContent = lampMinutes.toFixed(1);
+        document.getElementById('rt-light-unit').textContent = 'Minutes';
+      }
+      document.getElementById('rt-light-10w').textContent = (street10wMins >= 60) ? (street10wMins / 60).toFixed(1) + ' Hours' : street10wMins.toFixed(1) + ' Mins';
+
+      // 3. Free Power Outlet (2.5W pocket Wi-Fi vs 4W fan)
+      const wifiMinutes = totalJ / (2.5 * 60.0);
+      const fanMinutes = totalJ / (4.0 * 60.0);
+
+      if (wifiMinutes >= 60) {
+        document.getElementById('rt-outlet-val').textContent = (wifiMinutes / 60).toFixed(1);
+        document.getElementById('rt-outlet-unit').textContent = 'Hours';
+      } else {
+        document.getElementById('rt-outlet-val').textContent = wifiMinutes.toFixed(1);
+        document.getElementById('rt-outlet-unit').textContent = 'Minutes';
+      }
+      document.getElementById('rt-outlet-fan').textContent = (fanMinutes >= 60) ? (fanMinutes / 60).toFixed(1) + ' Hours' : fanMinutes.toFixed(1) + ' Mins';
+
+      // 4. Campus SOS Call Box (0.5W standby sentry vs 5W active voice call)
+      const sosStandbyHours = totalJ / (0.5 * 3600.0);
+      const sosActiveMinutes = totalJ / (5.0 * 60.0);
+
+      if (sosStandbyHours >= 24) {
+        document.getElementById('rt-sos-val').textContent = (sosStandbyHours / 24).toFixed(1);
+        document.getElementById('rt-sos-unit').textContent = 'Days';
+      } else {
+        document.getElementById('rt-sos-val').textContent = sosStandbyHours.toFixed(1);
+        document.getElementById('rt-sos-unit').textContent = 'Hours';
+      }
+      document.getElementById('rt-sos-active').textContent = (sosActiveMinutes >= 60) ? (sosActiveMinutes / 60).toFixed(1) + ' Hours' : sosActiveMinutes.toFixed(1) + ' Mins';
+    }
+
+    // ================= GRID SELECTION & COMPARISON CALCULATOR =================
+    function selectGrid(gridType) {
+      activeGrid = gridType;
+      document.getElementById('card-1x1').classList.toggle('active', gridType === '1x1');
+      document.getElementById('card-2x2').classList.toggle('active', gridType === '2x2');
+      document.getElementById('card-4x4').classList.toggle('active', gridType === '4x4');
+      updateTraffic(document.getElementById('trafficSlider').value);
+    }
+
+    function setTrafficPreset(steps) {
+      document.getElementById('trafficSlider').value = steps;
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      const foundBtn = Array.from(document.querySelectorAll('.preset-btn')).find(b => b.textContent.includes(steps.toLocaleString()) || b.textContent.includes(steps));
+      if (foundBtn) foundBtn.classList.add('active');
+      updateTraffic(steps);
+    }
+
+    function updateTraffic(steps) {
+      steps = parseInt(steps);
+      document.getElementById('traffic-steps-display').textContent = steps.toLocaleString() + ' Steps';
+
+      const multiplier = gridMultipliers[activeGrid];
+      let joules = (steps * 0.0012 * multiplier);
+      if (activeGrid === '4x4' && steps > 500) {
+        joules = steps * 0.45;
+      }
+
+      const wattHours = joules / 3600.0;
+      document.getElementById('metric-joules').textContent = (joules > 1000) ? (joules / 1000).toFixed(2) + ' kJ' : joules.toFixed(2) + ' J';
+
+      const ledSeconds = joules / 0.03;
+      document.getElementById('metric-runtime').textContent = (ledSeconds > 60) ? (ledSeconds / 60).toFixed(1) + ' min' : ledSeconds.toFixed(1) + ' s';
+
+      const pesos = (joules * (12.50 / 3600000.0));
+      document.getElementById('metric-pesos').textContent = '₱ ' + pesos.toFixed(4);
+
+      // Update Load Bars
+      const ledPct = Math.min(100, (joules / 0.0015) * 100);
+      document.getElementById('bar-led').style.width = ledPct + '%';
+
+      const pathwayPct = Math.min(100, (joules / 360.0) * 100);
+      document.getElementById('bar-pathway').style.width = pathwayPct + '%';
+      document.getElementById('badge-pathway').textContent = (pathwayPct >= 100) ? 'READY (100%)' : `${pathwayPct.toFixed(0)}% CHARGED`;
+
+      const arduinoPct = Math.min(100, (joules / 150.0) * 100);
+      document.getElementById('bar-arduino').style.width = arduinoPct + '%';
+      document.getElementById('badge-arduino').textContent = (arduinoPct >= 100) ? 'ONLINE' : `${arduinoPct.toFixed(0)}%`;
+
+      const phonePct = Math.min(100, (joules / 532.0) * 100);
+      document.getElementById('bar-phone').style.width = phonePct + '%';
+      document.getElementById('badge-phone').textContent = (phonePct >= 100) ? 'EMERGENCY TOP-UP READY' : `${phonePct.toFixed(1)}% OF 1%`;
+
+      updateChart(steps, multiplier);
+    }
+
+    // Chart.js Setup
+    let energyChart;
+    function initChart() {
+      const chartCtx = document.getElementById('energyChart').getContext('2d');
+      energyChart = new Chart(chartCtx, {
+        type: 'line',
+        data: {
+          labels: ['100', '500', '1000', '2500', '5000', '10000'],
+          datasets: [
+            {
+              label: '1x1 Tile (mJ)',
+              data: [120, 600, 1200, 3000, 6000, 12000],
+              borderColor: '#64748b',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 2
+            },
+            {
+              label: '2x2 Grid (mJ)',
+              data: [480, 2400, 4800, 12000, 24000, 48000],
+              borderColor: '#38bdf8',
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 3
+            },
+            {
+              label: '4x4 Platform (Hybrid Joules)',
+              data: [15, 75, 150, 375, 750, 1500],
+              borderColor: '#10b981',
+              borderWidth: 2.5,
+              tension: 0.3,
+              pointRadius: 3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: 'top', labels: { boxWidth: 10, color: '#94a3b8', font: { size: 10 } } }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 9 } } },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 9 } } }
+          }
+        }
+      });
+    }
+
+    function updateChart(steps, multiplier) {
+      // Highlights data point dynamically
+    }
+
+    // ================= 3D CAD EXPLODED VIEWPORT =================
+    let isCadExploded = true;
+    let cadRotX = 60;
+    let cadRotZ = -35;
+    const cadStage = document.getElementById('cadStage');
+
+    function toggleCadExplode() {
+      isCadExploded = !isCadExploded;
+      const l1 = document.getElementById('layer1');
+      const l2 = document.getElementById('layer2');
+      const l3 = document.getElementById('layer3');
+      const label = document.getElementById('cad-explode-label');
+
+      if (isCadExploded) {
+        l1.style.transform = 'translateZ(90px)';
+        l2.style.transform = 'translateZ(55px)';
+        l3.style.transform = 'translateZ(25px)';
+        label.textContent = 'Exploded (100%)';
+      } else {
+        l1.style.transform = 'translateZ(18px)';
+        l2.style.transform = 'translateZ(10px)';
+        l3.style.transform = 'translateZ(4px)';
+        label.textContent = 'Assembled (1:1)';
+      }
+    }
+
+    function resetCadView() {
+      cadRotX = 60; cadRotZ = -35;
+      cadStage.style.transform = `rotateX(${cadRotX}deg) rotateZ(${cadRotZ}deg)`;
+    }
+
+    function rotateCad(deg) {
+      cadRotZ += deg;
+      cadStage.style.transform = `rotateX(${cadRotX}deg) rotateZ(${cadRotZ}deg)`;
+    }
+
+    const cadVp = document.getElementById('cadViewport');
+    let isDraggingCad = false;
+    let startCadX, startCadY;
+
+    cadVp.addEventListener('mousedown', (e) => {
+      isDraggingCad = true;
+      startCadX = e.clientX;
+      startCadY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => isDraggingCad = false);
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingCad) return;
+      const dx = e.clientX - startCadX;
+      const dy = e.clientY - startCadY;
+      cadRotZ += dx * 0.5;
+      cadRotX = Math.max(10, Math.min(85, cadRotX - dy * 0.5));
+      cadStage.style.transform = `rotateX(${cadRotX}deg) rotateZ(${cadRotZ}deg)`;
+      startCadX = e.clientX;
+      startCadY = e.clientY;
+    });
+
+    // ================= EXPENDITURE TIERS LOGIC =================
+    const expenditureData = {
+      1: {
+        badge: 'RECOMMENDED FOR AR101 NOW',
+        badgeBg: '#064e3b',
+        badgeColor: '#34d399',
+        total: '₱ 140.00 MAX',
+        member: '₱ 35.00 / student',
+        timeline: '2-3 Weeks (AR101)',
+        note: '<strong>Level 1 (Spend Right Now):</strong> Uses 100% campus scrap for the casing, suspension, and diodes. The only minor expense is a 16-pack of 35mm piezo discs from Shopee (₱140.00 total, or ~₱35 per member). Direct LED flash proof-of-concept!',
+        items: [
+          { name: 'Pavement Casing', source: 'Melted HDPE Bottle Caps (QCU campus bins)', market: '₱ 450.00', cost: '₱ 0.00' },
+          { name: 'Suspension Springs', source: 'Scrap ballpen springs & slipper EVA foam', market: '₱ 120.00', cost: '₱ 0.00' },
+          { name: 'Rectifier Circuit', source: '4x 1N4007 diodes (salvaged dead CFL bulbs)', market: '₱ 35.00', cost: '₱ 0.00' },
+          { name: 'Reservoir Capacitor', source: '470 µF 50V (salvaged dead wall charger)', market: '₱ 25.00', cost: '₱ 0.00' },
+          { name: '16x PZT Transducers', source: 'Shopee bulk pack (₱8.75/pc) or salvaged buzzers', market: '₱ 320.00', cost: '₱ 140.00' },
+          { name: 'Microcontroller', source: 'Arduino Nano (University Lab Kit)', market: '₱ 280.00', cost: '₱ 0.00' }
+        ]
+      },
+      2: {
+        badge: 'MIDTERM / SEMESTER END UPGRADE',
+        badgeBg: '#78350f',
+        badgeColor: '#fbbf24',
+        total: '₱ 480.00 TOTAL',
+        member: '₱ 120.00 / student',
+        timeline: 'Midterms (Semester End)',
+        note: '<strong>Level 2 (Intermediate Upgrade):</strong> Adds lithium-ion energy buffering, USB 5V boost charging, and salvaged stepper dynamos from dead computer lab printers to enable emergency 15-minute smartphone charging top-ups (~₱120 per member).',
+        items: [
+          { name: 'Level 1 Base Tile', source: 'Recycled HDPE Eco-Brick + 16x PZT Discs', market: '₱ 450.00', cost: '₱ 140.00' },
+          { name: '18650 Lithium Cell', source: 'Harvested dead laptop battery or online', market: '₱ 180.00', cost: '₱ 60.00' },
+          { name: 'TP4056 Charger Board', source: 'Micro-USB 1A Li-ion Protection Module', market: '₱ 45.00', cost: '₱ 25.00' },
+          { name: '5V 2A USB Step-Up Boost', source: 'Regulated Phone Charging Port Module', market: '₱ 75.00', cost: '₱ 35.00' },
+          { name: 'Stepper Motor Dynamo', source: 'Salvaged from e-waste printer in QCU IT Lab', market: '₱ 250.00', cost: '₱ 0.00' },
+          { name: '0.96" I2C OLED Display', source: 'Compact graphical bus energy visualizer', market: '₱ 180.00', cost: '₱ 120.00' },
+          { name: 'Silicone Weatherproofing', source: 'Waterproof sealant & rubber apron gasket', market: '₱ 150.00', cost: '₱ 100.00' }
+        ]
+      },
+      3: {
+        badge: '4TH YEAR CAPSTONE DEFENSE',
+        badgeBg: '#581c87',
+        badgeColor: '#c084fc',
+        total: '₱ 1,850.00 TOTAL',
+        member: '₱ 462.50 / student',
+        timeline: '4th Year Final Capstone',
+        note: '<strong>Level 3 (Full Production Grid):</strong> Scaled to a full 4-tile sidewalk matrix (64 PZT discs + 4 stepper dynamos) with high-capacity 12V SLA battery bank, dual QC3.0 phone charging kiosk, 10W dusk-to-dawn LED streetlamp fixture, and ESP32 IoT Wi-Fi data logger (~₱462 per member).',
+        items: [
+          { name: '4-Tile Matrix Assembly', source: '4x Eco-Brick Pavers + 64 PZT Discs', market: '₱ 1,800.00', cost: '₱ 560.00' },
+          { name: '4x Stepper Dynamos', source: 'Salvaged e-waste printers + 3D pinion gears', market: '₱ 800.00', cost: '₱ 80.00' },
+          { name: '12V 7Ah SLA Battery Bank', source: 'Deep-cycle kinetic storage reservoir', market: '₱ 950.00', cost: '₱ 650.00' },
+          { name: 'Dual QC3.0 USB Kiosk', source: 'Waterproof fast-charging student outlet', market: '₱ 320.00', cost: '₱ 180.00' },
+          { name: '10W LED Streetlamp Fixture', source: 'Dusk-to-dawn campus pathway lighting', market: '₱ 450.00', cost: '₱ 280.00' },
+          { name: 'ESP32 IoT Wi-Fi Logger', source: 'Cloud energy telemetry & web dashboard', market: '₱ 350.00', cost: '₱ 220.00' },
+          { name: 'Aluminum Frame Trim', source: 'Sidewalk perimeter ramp & rubber seals', market: '₱ 600.00', cost: '₱ 200.00' }
+        ]
+      }
+    };
+
+    function setExpenditureLevel(lvl) {
+      document.getElementById('btn-tier-1').className = 'tier-btn' + (lvl === 1 ? ' active lvl1' : '');
+      document.getElementById('btn-tier-2').className = 'tier-btn' + (lvl === 2 ? ' active lvl2' : '');
+      document.getElementById('btn-tier-3').className = 'tier-btn' + (lvl === 3 ? ' active lvl3' : '');
+
+      const data = expenditureData[lvl];
+      const badge = document.getElementById('tier-status-badge');
+      badge.textContent = data.badge;
+      badge.style.background = data.badgeBg;
+      badge.style.color = data.badgeColor;
+
+      document.getElementById('tier-total-cost').textContent = data.total;
+      document.getElementById('tier-member-cost').textContent = data.member;
+      document.getElementById('tier-timeline').textContent = data.timeline;
+      document.getElementById('tier-market-note').innerHTML = data.note;
+
+      const tbody = document.getElementById('tier-table-body');
+      tbody.innerHTML = '';
+      data.items.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><strong>${item.name}</strong></td>
+          <td>${item.source}</td>
+          <td>${item.market}</td>
+          <td class="peso-badge">${item.cost}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      // Add Total Row
+      const totalRow = document.createElement('tr');
+      totalRow.style.fontWeight = '700';
+      totalRow.style.background = 'rgba(34,197,94,0.08)';
+      totalRow.innerHTML = `
+        <td colspan="3" style="color:#fff;">TOTAL LEVEL ${lvl} EXPENDITURE:</td>
+        <td class="peso-badge" style="font-size:13px; color:#4ade80;">${data.total}</td>
+      `;
+      tbody.appendChild(totalRow);
+    }
+
+    // ================= PRESENTATION MODE =================
+    function togglePresenterMode() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          alert(`Fullscreen error: ${err.message}`);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Start everything on page load
+    window.onload = () => {
+      initChart();
+      setShift('am');
+      calculatePopulationEngine();
+      setExpenditureLevel(1);
+      drawScene();
+    };
+  </script>
+</body>
+</html>

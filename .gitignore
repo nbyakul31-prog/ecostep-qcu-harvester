@@ -1,0 +1,23 @@
+# Ignore all temporary screenshots and crops
+*.png
+!assets/*.png
+*.jpg
+!assets/*.jpg
+
+# Ignore large media and documents
+*.m4a
+*.mp3
+*.wav
+*.docx
+*.pdf
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE and temporary agent data
+.agents/
+.gemini/
+.system_generated/
+scratch/
