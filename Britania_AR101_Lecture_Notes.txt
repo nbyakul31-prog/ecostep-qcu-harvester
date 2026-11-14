@@ -1,0 +1,95 @@
+
+1. MEMORY SEGMENTS & ADDRESSING
+
+Memory Segmentation
+  - It is how the Intel 8086 divides its 1MB total memory into smaller 64KB logical blocks called segments.
+
+4 Memory Segments and their registers
+  - Code Segment (CS):
+    - Stores the actual program code / executable assembly instructions.
+    - Offset register: IP (Instruction Pointer).
+  - Data Segment (DS):
+    - Stores program variables, static data, and arrays.
+    - Offset registers: BX (Base), SI (Source Index), DI (Destination Index).
+  - Stack Segment (SS):
+    - Dedicated memory section for temporary storage, subroutine calls, and LIFO operations.
+    - Offset register: SP (Stack Pointer) or BP (Base Pointer).
+  - Extra Segment (ES):
+    - Extra data segment used mainly for string destination operations.
+    - Offset register: DI (Destination Index).
+
+20-bit Physical Address calculation
+  - Physical Address = (Segment Register x 16) + Offset Register
+  - In Hex: Shift segment left by 1 hex digit (multiply by 10H), then add offset.
+  - Code Address: (CS x 16) + IP
+  - Data Address: (DS x 16) + Offset (BX, SI, or DI)
+  - Stack Address: (SS x 16) + SP
+
+
+2. STACK OPERATIONS 
+
+ Stack
+  - A container / array-like data structure in memory that follows the LIFO (Last-In, First-Out) principle.
+  - The last value placed into the stack is the first value to be removed.
+
+ Which registers control the Stack?
+  - SS (Stack Segment) and SP (Stack Pointer).
+  - SP always points to the current Top of Stack (TOS).
+
+  PUSH operation in 8086
+  - PUSH inserts 16-bit word data onto the stack.
+  - Byte placement:
+    - High-order 8 bits go into memory address: SP - 1
+    - Low-order 8 bits go into memory address: SP - 2
+  - SP is decremented by 2: SP = SP - 2
+  - Key Rule: In 8086, the stack grows DOWNWARDS (from high memory addresses to low memory addresses).
+  - Example: PUSH BX
+
+ POP operation 
+  - POP removes the 16-bit data from the current Top of Stack.
+  - After copying the data, SP is incremented by 2: SP = SP + 2.
+  - Memory addresses move back upwards.
+
+ Overflow condition
+  - It occurs when the allocated stack segment memory is completely full and the program attempts another PUSH.
+
+
+  
+    1. PUSH 1 -> stored at bottom, SP points to 1.
+    2. PUSH 3 -> stored above 1, SP points to 3.
+    3. PUSH 2 -> stored above 3, SP points to 2 (Top of Stack).
+    4. POP()  -> removes 2 first (since it was last in), SP moves back down to point at 3.
+
+
+3. 8086 ADDRESSING MODES
+
+Addressing Mode
+  - The method the CPU uses to locate and access data (operands) specified in an instruction.
+
+ 1. Immediate Addressing Mode:
+  - The operand is a fixed constant number written directly in the instruction.
+  - Example:
+    - MOV CX, 4929H -> moves 16-bit immediate constant 4929H straight into CX.
+    - ADD AX, 2387H -> adds immediate constant 2387H directly to AX, stores result in AX.
+
+ 2. Register Addressing Mode:
+  - What is it: The data operand is already located inside an internal CPU register.
+  - Why: Very fast execution because no RAM bus access is needed.
+  - Example: MOV AX, BX -> copies content of BX directly into AX.
+
+ 3. Direct Addressing Mode:
+  - The 16-bit memory offset address is written directly inside brackets [ ].
+  - Example:
+    - MOV AX, [1592H] -> CPU goes to offset 1592H in the Data Segment, reads the data from RAM, and loads it into AX.
+
+ 4. Register Indirect Addressing Mode:
+  - memory offset address is stored inside a pointer or index register.
+  - registers are allowed inside brackets [ ]:
+    - Base registers: BX, BP
+    - Index registers: SI, DI
+    - (AX, CX, DX are NOT allowed as indirect address pointers).
+   
+Example:
+    - MOV AX, [BX] -> register BX holds the offset (e.g. 0300H). The CPU accesses memory address [BX] in DS and copies that value into AX.
+
+

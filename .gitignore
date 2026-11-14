@@ -10,6 +10,8 @@
 *.wav
 *.docx
 *.pdf
+*.zip
+*.backup
 
 # Python artifacts
 __pycache__/
@@ -21,3 +23,15 @@ __pycache__/
 .gemini/
 .system_generated/
 scratch/
+
+# Unrelated academic lab activities & scratch scripts
+XML_Lab/
+*.xml
+*XML*
+*Rizal*
+*rizal*
+generate_v*.py
+build_*.py
+test_shape.py
+Pythonprint.py
+extracted_headers/

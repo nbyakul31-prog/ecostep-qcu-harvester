@@ -1,0 +1,757 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoStep QCU - 4-Tile Piezoelectric Kinetic Harvester CAD & Hardware Simulator</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(17, 24, 39, 0.9);
+      --border: rgba(56, 189, 248, 0.25);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --brass: #f59e0b;
+      --pzt: #cbd5e1;
+      --success: #10b981;
+      --danger: #f43f5e;
+      --plastic: #0d9488;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .badge-qcu {
+      background: rgba(13, 148, 136, 0.2);
+      color: #2dd4bf;
+      border: 1px solid rgba(45, 212, 191, 0.3);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .badge-ar101 {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    h1 { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+    .subtitle { font-size: 0.8rem; color: var(--text-muted); }
+    
+    .actions { display: flex; gap: 8px; }
+    .btn {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn:hover { background: #334155; border-color: var(--accent); }
+    .btn-primary { background: #0284c7; border-color: #38bdf8; font-weight: 600; }
+    .btn-primary:hover { background: #0369a1; box-shadow: 0 0 15px var(--accent-glow); }
+
+    main {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+      padding: 18px;
+      flex: 1;
+    }
+    @media (max-width: 1080px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+    }
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 8px;
+    }
+
+    /* 3D Exploded Viewport */
+    #viewport-container {
+      height: 440px;
+      background: radial-gradient(circle at center, #172554 0%, #0b0f19 85%);
+      border-radius: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1000px;
+      cursor: grab;
+    }
+    #viewport-container:active { cursor: grabbing; }
+
+    .stage-3d {
+      width: 300px;
+      height: 300px;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(60deg) rotateZ(-35deg);
+      transition: transform 0.1s ease-out;
+    }
+
+    .layer-plane {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-style: preserve-3d;
+    }
+
+    /* 3D Layers */
+    .plate-top {
+      background: repeating-linear-gradient(45deg, rgba(13, 148, 136, 0.75), rgba(13, 148, 136, 0.75) 10px, rgba(15, 118, 110, 0.8) 10px, rgba(15, 118, 110, 0.8) 20px);
+      border: 2px solid #2dd4bf;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      transform: translateZ(125px);
+      color: #fff;
+      font-weight: 700;
+      font-size: 11px;
+      text-align: center;
+      padding: 10px;
+    }
+    .plate-top.acrylic {
+      background: rgba(148, 163, 184, 0.25);
+      border: 2px dashed #38bdf8;
+      color: #38bdf8;
+    }
+    .plate-studs {
+      transform: translateZ(80px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      padding: 20px;
+      gap: 12px;
+    }
+    .stud-3d {
+      width: 14px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent);
+      margin: auto;
+    }
+
+    .plate-piezo {
+      background: rgba(30, 41, 59, 0.8);
+      border: 2px solid var(--brass);
+      transform: translateZ(40px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      padding: 15px;
+      gap: 10px;
+    }
+    .piezo-disc-3d {
+      width: 44px;
+      height: 44px;
+      background: radial-gradient(circle, #cbd5e1 45%, var(--brass) 46%, #b45309 90%);
+      border-radius: 50%;
+      margin: auto;
+      box-shadow: 0 0 6px rgba(0,0,0,0.6);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .piezo-disc-3d.active {
+      transform: scale(0.90);
+      box-shadow: 0 0 18px #f59e0b, 0 0 30px #38bdf8;
+    }
+
+    .plate-base {
+      background: rgba(15, 23, 42, 0.95);
+      border: 2px solid #38bdf8;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      transform: translateZ(0px);
+      color: #94a3b8;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    /* Controls bar */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 8px;
+    }
+
+    /* Hardware Simulator Panel */
+    .telemetry-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .gauge {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+    .gauge-val { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+    .gauge-unit { font-size: 0.72rem; color: var(--text-muted); }
+
+    /* Interactive Footstep Trigger Area */
+    .footstep-trigger {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 2px dashed #38bdf8;
+      border-radius: 8px;
+      padding: 18px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s;
+    }
+    .footstep-trigger:hover {
+      background: #1e3a8a;
+      border-color: #60a5fa;
+    }
+    .footstep-trigger:active {
+      transform: scale(0.98);
+      background: #0284c7;
+    }
+    .footstep-icon { font-size: 1.8rem; margin-bottom: 4px; }
+
+    /* Load Section */
+    .load-box {
+      background: #111827;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .load-toggle-bar {
+      display: flex;
+      gap: 8px;
+    }
+    .load-btn {
+      flex: 1;
+      padding: 6px;
+      font-size: 11px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #94a3b8;
+      cursor: pointer;
+      text-align: center;
+      font-weight: 600;
+    }
+    .load-btn.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+
+    .load-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 10px;
+      background: #0f172a;
+      border-radius: 6px;
+      min-height: 70px;
+    }
+
+    /* LED Bulb Visualizer */
+    .led-bulb {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #334155;
+      border: 2px solid #64748b;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.8);
+      transition: all 0.08s;
+    }
+    .led-bulb.lit {
+      background: #ffffff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 25px #38bdf8, 0 0 45px #38bdf8;
+    }
+
+    /* Phone Battery Visualizer */
+    .phone-mock {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .battery-shell {
+      width: 70px;
+      height: 30px;
+      border: 2px solid #94a3b8;
+      border-radius: 4px;
+      padding: 2px;
+      position: relative;
+    }
+    .battery-shell::after {
+      content: '';
+      position: absolute;
+      right: -6px;
+      top: 8px;
+      width: 4px;
+      height: 10px;
+      background: #94a3b8;
+      border-radius: 0 2px 2px 0;
+    }
+    .battery-fill {
+      height: 100%;
+      width: 12%;
+      background: #10b981;
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    /* Oscilloscope canvas */
+    canvas#scope {
+      width: 100%;
+      height: 95px;
+      background: #060b14;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+    }
+
+    /* AR101 Architecture Map */
+    .arch-stack {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 11px;
+    }
+    .arch-item {
+      background: rgba(30, 41, 59, 0.6);
+      border-left: 3px solid var(--accent);
+      padding: 6px 10px;
+      border-radius: 0 4px 4px 0;
+    }
+    .arch-title { font-weight: 600; color: #cbd5e1; }
+    .arch-desc { color: var(--text-muted); font-size: 10px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="badge-qcu">QCU NOVALICHES</span>
+      <span class="badge-ar101">AR101 HARDWARE</span>
+      <div>
+        <h1>EcoStep QCU: Kinetic Footstep Floor Energy Harvester</h1>
+        <div class="subtitle">Recycled Plastic Brick Pavement Matrix | East Japan Railway (JR East) Harvester Model</div>
+      </div>
+    </div>
+    <div class="actions">
+      <a class="btn" href="QCU_Piezoelectric_Floor_Generator_Research_and_SRS.md" target="_blank">
+        <span>≡ƒôä Open SRS Document</span>
+      </a>
+      <a class="btn" href="piezo_floor_blueprint_schematic.svg" target="_blank">
+        <span>≡ƒôÉ Vector Schematic</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT COLUMN: 3D CAD VISUALIZER -->
+    <div class="card">
+      <div class="card-title">
+        <span>3D Exploded Tile Stackup & Material Inspection</span>
+        <span class="badge-ar101" id="explode-status">Exploded View (100%)</span>
+      </div>
+
+      <div id="viewport-container">
+        <div class="stage-3d" id="stage">
+          <!-- Layer 1: Top Strike Plate -->
+          <div class="layer-plane plate-top" id="layer-top">
+            <div id="top-plate-text">
+              1. RECYCLED PLASTIC PAVEMENT BRICK<br>
+              <span style="font-size:9px; font-weight:normal; opacity:0.9;">Melted HDPE Bottle Caps & PET Composite (300 x 300 x 20mm)</span>
+            </div>
+          </div>
+
+          <!-- Layer 2: Actuator Studs -->
+          <div class="layer-plane plate-studs" id="layer-studs">
+            <div class="stud-3d"></div><div class="stud-3d"></div><div class="stud-3d"></div><div class="stud-3d"></div>
+            <div class="stud-3d"></div><div class="stud-3d"></div><div class="stud-3d"></div><div class="stud-3d"></div>
+            <div class="stud-3d"></div><div class="stud-3d"></div><div class="stud-3d"></div><div class="stud-3d"></div>
+            <div class="stud-3d"></div><div class="stud-3d"></div><div class="stud-3d"></div><div class="stud-3d"></div>
+          </div>
+
+          <!-- Layer 3: PZT Piezo Array -->
+          <div class="layer-plane plate-piezo" id="layer-piezo">
+            <div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div>
+            <div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div>
+            <div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div>
+            <div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div><div class="piezo-disc-3d"></div>
+          </div>
+
+          <!-- Layer 4: Base Tray & Chassis -->
+          <div class="layer-plane plate-base" id="layer-base">
+            <span style="font-weight:600; color:#38bdf8; font-size:10px; transform:translateZ(10px);">
+              4. SUB-CHASSIS & HARVESTER TRAY<br>(Recycled HDPE Base + Shock Damper Springs)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Viewport Interaction Tools -->
+      <div class="controls-grid">
+        <button class="btn" onclick="toggleExplode()">≡ƒÆÑ Explode / Assemble</button>
+        <button class="btn" onclick="toggleMaterial()">ΓÖ╗∩╕Å Toggle Eco-Brick / Acrylic</button>
+        <button class="btn" onclick="resetView()">≡ƒöä Reset Angle</button>
+        <button class="btn" onclick="rotateLeft()">Γå╢ Rotate</button>
+      </div>
+
+      <!-- Grid Matrix Selector -->
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; padding:8px 12px; border-radius:6px;">
+        <span style="font-size:12px; font-weight:600; color:#cbd5e1;">Test Configuration:</span>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-primary" id="btn-1tile" onclick="setGrid(1)">1 Single Tile (16 PZT)</button>
+          <button class="btn" id="btn-4tile" onclick="setGrid(4)">4-Square Grid (64 PZT)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: HARDWARE & AR101 INTERFACE SIMULATOR -->
+    <div class="card">
+      <div class="card-title">
+        <span>Hardware Harvester & Architecture Telemetry</span>
+        <span class="badge-qcu" id="active-grid-badge">1 TILE ACTIVE</span>
+      </div>
+
+      <!-- Footstep Strike Test Button -->
+      <div class="footstep-trigger" id="footstep-btn" onclick="triggerFootstep()">
+        <div class="footstep-icon">≡ƒæ₧ΓÜí</div>
+        <div style="font-weight:700; font-size:1rem; color:#fff;">SIMULATE FOOTSTEP IMPACT</div>
+        <div style="font-size:11px; color:var(--accent);">Click or tap repeatedly to harvest dynamic kinetic foot strikes</div>
+      </div>
+
+      <!-- Live Telemetry Gauges -->
+      <div class="telemetry-row">
+        <div class="gauge">
+          <div class="gauge-unit">PEAK AC VOLTS</div>
+          <div class="gauge-val" id="val-volt">0.0 <span style="font-size:11px;">V</span></div>
+          <div class="gauge-unit" id="volt-sub">Schottky Rectified</div>
+        </div>
+        <div class="gauge">
+          <div class="gauge-unit">BUS CAPACITOR</div>
+          <div class="gauge-val" id="val-cap" style="color:#10b981;">0.00 <span style="font-size:11px;">V</span></div>
+          <div class="gauge-unit">470 ┬╡F Reservoir</div>
+        </div>
+        <div class="gauge">
+          <div class="gauge-unit">HARVESTED ENERGY</div>
+          <div class="gauge-val" id="val-joules" style="color:#f59e0b;">0.00 <span style="font-size:11px;">mJ</span></div>
+          <div class="gauge-unit">Steps: <span id="step-count">0</span></div>
+        </div>
+      </div>
+
+      <!-- Load Testing Section -->
+      <div class="load-box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:11px; font-weight:700; color:#e2e8f0;">OUTPUT LOAD SELECTOR:</span>
+          <span style="font-size:10px; color:#94a3b8;" id="load-state-label">Direct LED Flash Active</span>
+        </div>
+        <div class="load-toggle-bar">
+          <div class="load-btn active" id="btn-load-led" onclick="setLoadMode('led')">
+            ≡ƒÆí Phase 1: High-Efficiency LED (Instant Proof)
+          </div>
+          <div class="load-btn" id="btn-load-phone" onclick="setLoadMode('phone')">
+            ≡ƒô▒ Phase 2: 5V Phone Buffer (Capstone)
+          </div>
+        </div>
+
+        <div class="load-display" id="load-display-container">
+          <!-- LED View -->
+          <div id="led-view" style="display:flex; align-items:center; gap:16px;">
+            <div class="led-bulb" id="led-bulb"></div>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:#fff;" id="led-text">Status: Off (Waiting for Footstep)</div>
+              <div style="font-size:10px; color:#94a3b8;">Threshold: 2.8V DC rail trigger | 100% Attainable in AR101 Lab</div>
+            </div>
+          </div>
+
+          <!-- Phone View (Hidden by default) -->
+          <div id="phone-view" style="display:none; align-items:center; gap:16px; width:100%; justify-content:space-around;">
+            <div class="phone-mock">
+              <div class="battery-shell">
+                <div class="battery-fill" id="battery-fill"></div>
+              </div>
+              <span style="font-weight:700; font-size:13px; color:#10b981;" id="battery-pct">12%</span>
+            </div>
+            <div style="font-size:10px; color:#cbd5e1; line-height:1.4;">
+              <div>Emergency Buffer: <strong style="color:#38bdf8;" id="phone-buffer-mah">14.2 mAh</strong></div>
+              <div>Est. QCU Campus Daily Steps: <strong style="color:#f59e0b;">3,750</strong> (~8% - 12% recharge)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Waveform Monitor -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:3px; color:var(--text-muted);">
+          <span>PIEZO IMPULSE WAVEFORM (DAMPED OSCILLATION)</span>
+          <span style="color:#38bdf8;">TIME BASE: 10ms/DIV</span>
+        </div>
+        <canvas id="scope" width="500" height="95"></canvas>
+      </div>
+
+      <!-- AR101 Architecture Mapping -->
+      <div class="arch-stack">
+        <div class="arch-item">
+          <div class="arch-title">1. Hardware Interrupt (INT0 Pin 2)</div>
+          <div class="arch-desc">Foot strike triggers interrupt service routine, waking ATmega328P from sleep to log passenger telemetry.</div>
+        </div>
+        <div class="arch-item">
+          <div class="arch-title">2. 10-bit ADC Data Bus (ADMUX)</div>
+          <div class="arch-desc">Reads analog rail via 10:1 divider into General Purpose Registers, computing $E = \frac{1}{2} C V^2$.</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // 3D Viewport
+    const stage = document.getElementById('stage');
+    let rotX = 60, rotZ = -35;
+    let isDragging = false;
+    let startX, startY;
+    let isExploded = true;
+    let isEcoBrick = true;
+    let gridMultiplier = 1;
+    let loadMode = 'led';
+
+    const container = document.getElementById('viewport-container');
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      rotZ += dx * 0.5;
+      rotX = Math.max(10, Math.min(85, rotX - dy * 0.5));
+      stage.style.transform = `rotateX(${rotX}deg) rotateZ(${rotZ}deg)`;
+      startX = e.clientX;
+      startY = e.clientY;
+    });
+
+    function toggleExplode() {
+      isExploded = !isExploded;
+      const top = document.getElementById('layer-top');
+      const studs = document.getElementById('layer-studs');
+      const piezo = document.getElementById('layer-piezo');
+      const status = document.getElementById('explode-status');
+
+      if (isExploded) {
+        top.style.transform = 'translateZ(125px)';
+        studs.style.transform = 'translateZ(80px)';
+        piezo.style.transform = 'translateZ(40px)';
+        status.textContent = 'Exploded View (100%)';
+      } else {
+        top.style.transform = 'translateZ(20px)';
+        studs.style.transform = 'translateZ(12px)';
+        piezo.style.transform = 'translateZ(5px)';
+        status.textContent = 'Assembled Pavement Tile';
+      }
+    }
+
+    function toggleMaterial() {
+      isEcoBrick = !isEcoBrick;
+      const top = document.getElementById('layer-top');
+      const text = document.getElementById('top-plate-text');
+      if (isEcoBrick) {
+        top.classList.remove('acrylic');
+        text.innerHTML = '1. RECYCLED PLASTIC PAVEMENT BRICK<br><span style="font-size:9px; font-weight:normal; opacity:0.9;">Melted HDPE Bottle Caps & PET Composite (300 x 300 x 20mm)</span>';
+      } else {
+        top.classList.add('acrylic');
+        text.innerHTML = '1. CLEAR INSPECTION ACRYLIC SHELL<br><span style="font-size:9px; font-weight:normal; opacity:0.9;">Laboratory Visual Testing Model (Transparent)</span>';
+      }
+    }
+
+    function resetView() {
+      rotX = 60; rotZ = -35;
+      stage.style.transform = `rotateX(${rotX}deg) rotateZ(${rotZ}deg)`;
+    }
+    function rotateLeft() { rotZ -= 30; stage.style.transform = `rotateX(${rotX}deg) rotateZ(${rotZ}deg)`; }
+
+    function setGrid(tiles) {
+      gridMultiplier = tiles;
+      document.getElementById('btn-1tile').classList.toggle('btn-primary', tiles === 1);
+      document.getElementById('btn-4tile').classList.toggle('btn-primary', tiles === 4);
+      document.getElementById('active-grid-badge').textContent = tiles === 1 ? '1 TILE ACTIVE' : '4-SQUARE GRID ACTIVE';
+    }
+
+    function setLoadMode(mode) {
+      loadMode = mode;
+      document.getElementById('btn-load-led').classList.toggle('active', mode === 'led');
+      document.getElementById('btn-load-phone').classList.toggle('active', mode === 'phone');
+      document.getElementById('led-view').style.display = mode === 'led' ? 'flex' : 'none';
+      document.getElementById('phone-view').style.display = mode === 'phone' ? 'flex' : 'none';
+      document.getElementById('load-state-label').textContent = mode === 'led' ? 'Direct LED Flash Active' : '5V Regulated Buffer Active';
+    }
+
+    // Oscilloscope & Physics Simulation
+    const canvas = document.getElementById('scope');
+    const ctx = canvas.getContext('2d');
+    let waveData = new Array(100).fill(48);
+    let stepCount = 0;
+    let capVoltage = 0.0;
+    let totalJoules = 0.0;
+    let instantVolt = 0.0;
+    let phoneChargeMah = 14.2;
+
+    function drawScope() {
+      ctx.fillStyle = '#060b14';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Grid lines
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let y = 15; y < canvas.height; y += 15) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
+      for (let x = 25; x < canvas.width; x += 25) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+      }
+
+      // Center Reference line
+      ctx.strokeStyle = '#334155';
+      ctx.beginPath(); ctx.moveTo(0, 48); ctx.lineTo(canvas.width, 48); ctx.stroke();
+
+      // Waveform
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 5;
+      ctx.beginPath();
+      for (let i = 0; i < waveData.length; i++) {
+        const x = (i / (waveData.length - 1)) * canvas.width;
+        const y = waveData[i];
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Leakage decay
+      if (capVoltage > 0.02) {
+        capVoltage -= 0.001;
+      }
+      document.getElementById('val-cap').innerHTML = capVoltage.toFixed(2) + ' <span style="font-size:11px;">V</span>';
+
+      if (instantVolt > 0.1) {
+        instantVolt *= 0.90;
+        document.getElementById('val-volt').innerHTML = instantVolt.toFixed(1) + ' <span style="font-size:11px;">V</span>';
+      }
+
+      requestAnimationFrame(drawScope);
+    }
+    drawScope();
+
+    function triggerFootstep() {
+      stepCount++;
+      document.getElementById('step-count').textContent = stepCount;
+
+      // Peak voltage per step
+      const baseV = 28 + Math.random() * 12;
+      instantVolt = baseV * (gridMultiplier === 4 ? 1.25 : 1.0);
+      document.getElementById('val-volt').innerHTML = instantVolt.toFixed(1) + ' <span style="font-size:11px;">V</span>';
+
+      // Energy calculation
+      const stepEnergy_mJ = (0.45 + Math.random() * 0.40) * gridMultiplier;
+      totalJoules += stepEnergy_mJ;
+      document.getElementById('val-joules').innerHTML = totalJoules.toFixed(2) + ' <span style="font-size:11px;">mJ</span>';
+
+      // Cap voltage rise
+      capVoltage = Math.min(3.3, capVoltage + (0.45 * gridMultiplier));
+
+      // Load Reaction
+      if (loadMode === 'led') {
+        const led = document.getElementById('led-bulb');
+        const text = document.getElementById('led-text');
+        led.classList.add('lit');
+        text.textContent = 'Status: FLASHING (Energy Harvested!)';
+        text.style.color = '#38bdf8';
+        setTimeout(() => {
+          led.classList.remove('lit');
+          text.textContent = 'Status: Off (Waiting for Footstep)';
+          text.style.color = '#fff';
+        }, 300);
+      } else {
+        phoneChargeMah += (0.002 * gridMultiplier);
+        document.getElementById('phone-buffer-mah').textContent = phoneChargeMah.toFixed(2) + ' mAh';
+        const pct = Math.min(100, (12 + (phoneChargeMah - 14.2) * 2)).toFixed(1);
+        document.getElementById('battery-pct').textContent = pct + '%';
+        document.getElementById('battery-fill').style.width = Math.min(100, Math.max(12, pct)) + '%';
+      }
+
+      // Animate Piezo Discs
+      const discs = document.querySelectorAll('.piezo-disc-3d');
+      discs.forEach(d => {
+        d.classList.add('active');
+        setTimeout(() => d.classList.remove('active'), 200);
+      });
+
+      // Waveform spike
+      for (let t = 0; t < 35; t++) {
+        const amplitude = 38 * Math.exp(-t * 0.14);
+        const val = 48 - Math.sin(t * 0.7) * amplitude;
+        waveData.shift();
+        waveData.push(val);
+      }
+    }
+  </script>
+</body>
+</html>

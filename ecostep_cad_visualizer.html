@@ -1,0 +1,2891 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EQC-STEP: 3D CAD Prototyper, Component Explorer & IPT102 Telemetry Visualizer</title>
+
+  <!-- Modern Technical Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@500;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Three.js & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #070a13;
+      --bg-panel: rgba(12, 19, 35, 0.94);
+      --bg-card: rgba(19, 29, 51, 0.88);
+      --border-cyan: #00e5ff;
+      --border-amber: #f59e0b;
+      --border-subtle: #1e293b;
+      --accent-cyan: #00e5ff;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-green: #10b981;
+      --accent-blue: #38bdf8;
+      --accent-purple: #a855f7;
+      --text-main: #f8fafc;
+      --text-dim: #94a3b8;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-ui: 'Inter', system-ui, sans-serif;
+      --font-title: 'Outfit', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* 3D Canvas Viewport */
+    #cad-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    /* Top CAD Technical Header */
+    #top-header {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      z-index: 20;
+      background: var(--bg-panel);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-cyan);
+      box-shadow: 0 8px 32px rgba(0, 229, 255, 0.15);
+      padding: 14px 20px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 500px;
+    }
+
+    .project-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      letter-spacing: 1px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent-cyan);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(0.8);
+      }
+    }
+
+    #top-header h1 {
+      font-family: var(--font-title);
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #top-header p {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    /* Floating Toolbar */
+    #toolbar {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      z-index: 20;
+      display: flex;
+      gap: 8px;
+      background: var(--bg-panel);
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(14px);
+    }
+
+    .cad-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .cad-btn:hover {
+      background: #0284c7;
+      border-color: var(--border-cyan);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(0, 229, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .cad-btn.active {
+      background: var(--accent-cyan);
+      color: #070a12;
+      border-color: #fff;
+      font-weight: 800;
+    }
+
+    /* Left Control & Simulation Dock */
+    #sim-dock {
+      position: absolute;
+      bottom: 24px;
+      left: 20px;
+      z-index: 20;
+      background: var(--bg-panel);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 18px;
+      width: 370px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75);
+    }
+
+    .dock-title {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent-amber);
+      letter-spacing: 0.8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Big Stomp Button */
+    .stomp-btn {
+      background: linear-gradient(135deg, #0284c7 0%, #00e5ff 100%);
+      color: #070a12;
+      border: none;
+      padding: 13px;
+      border-radius: 8px;
+      font-family: var(--font-title);
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 6px 20px rgba(0, 229, 255, 0.4);
+      transition: all 0.15s ease;
+    }
+
+    .stomp-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0, 229, 255, 0.6);
+    }
+
+    .stomp-btn:active {
+      transform: translateY(2px) scale(0.98);
+      background: #f59e0b;
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.6);
+    }
+
+    /* Slider Container */
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+
+    .slider-header span.val {
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--accent-cyan);
+      transition: all 0.15s;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Telemetry Grid */
+    .tele-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .tele-card {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 9px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .tele-card .label {
+      font-size: 9.5px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+
+    .tele-card .number {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Right Details & Inspection Panel */
+    #right-panel {
+      position: absolute;
+      top: 74px;
+      right: 20px;
+      z-index: 20;
+      background: var(--bg-panel);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 16px;
+      width: 440px;
+      max-height: calc(100vh - 110px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85);
+      transition: all 0.3s ease;
+    }
+
+    #right-panel::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    #right-panel::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-subtle);
+      gap: 3px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 3px;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      color: var(--accent-cyan);
+      border-bottom-color: var(--accent-cyan);
+      font-weight: 700;
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* Component Explorer Item */
+    .part-item {
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .part-item:hover {
+      border-color: var(--accent-cyan);
+      background: rgba(2, 132, 199, 0.15);
+      transform: translateX(3px);
+    }
+
+    .part-item.selected {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+      background: rgba(0, 229, 255, 0.08);
+    }
+
+    .part-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .part-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .part-category {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #1e293b;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+    }
+
+    .part-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    .part-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--accent-amber);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 5px;
+    }
+
+    /* Focus Dossier Card */
+    #focus-dossier {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.2) 0%, rgba(15, 23, 42, 0.95) 100%);
+      border: 1.5px solid var(--border-cyan);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(0, 229, 255, 0.2);
+    }
+
+    #focus-dossier h3 {
+      font-size: 14px;
+      color: var(--accent-cyan);
+      font-family: var(--font-title);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10.5px;
+      font-family: var(--font-mono);
+    }
+
+    .spec-table tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .spec-table td {
+      padding: 5px 3px;
+    }
+
+    .spec-table td.dim {
+      color: var(--text-dim);
+      width: 45%;
+    }
+
+    .spec-table td.val {
+      color: #f8fafc;
+      font-weight: 600;
+    }
+
+    /* Live Telemetry Oscilloscope Canvas */
+    #scope-canvas {
+      width: 100%;
+      height: 85px;
+      background: #080d19;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+    }
+
+    /* Connected Load Simulation Card */
+    .load-box {
+      background: var(--bg-card);
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .load-status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .load-pill {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      padding: 8px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .load-pill.active {
+      border-color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .load-pill .name {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+
+    .load-pill .state {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+
+    /* Bottom Coordinates Display */
+    #viewport-hud {
+      position: absolute;
+      bottom: 24px;
+      right: 20px;
+      z-index: 10;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      background: rgba(12, 19, 35, 0.85);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      pointer-events: none;
+    }
+
+    /* Hover Inspection Tooltip in 3D */
+    #cad-tooltip {
+      position: absolute;
+      z-index: 50;
+      background: rgba(10, 15, 29, 0.95);
+      border: 1.5px solid var(--border-cyan);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      pointer-events: none;
+      display: none;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8);
+      max-width: 240px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 3D WebGL Canvas -->
+  <div id="cad-canvas"></div>
+
+  <!-- CAD Tooltip -->
+  <div id="cad-tooltip"></div>
+
+  <!-- Top Header Title Block -->
+  <div id="top-header">
+    <div class="project-badge">
+      <span class="pulse-dot"></span>
+      AR101 &amp; IPT102 • SBIT-3G GROUP 5 • QCU
+    </div>
+    <h1>⚡ EQC-STEP: Piezoelectric Harvester &amp; ESP32 IoT Architecture</h1>
+    <p>Complete 3D CAD physical breakdown: 4x PZT Piezo Discs, EVA Impact Pads, Full-Wave Schottky Bridge (1N5819), 5.1V Zener Clamp, 2,200 µF Tank, TP4056 1S BMS, Repurposed 3.7V 18650 Battery, MT3608 5V Boost Converter, ESP32-WROOM-32 IoT Microcontroller &amp; "I ❤️ QCU" Signboard.</p>
+  </div>
+
+  <!-- Floating CAD Camera & Layer Toolbar -->
+  <div id="toolbar">
+    <button class="cad-btn active" id="btn-iso" onclick="setCameraView('iso')">Isometric</button>
+    <button class="cad-btn" id="btn-top" onclick="setCameraView('top')">Top Plan</button>
+    <button class="cad-btn" id="btn-front" onclick="setCameraView('front')">Front Cutaway</button>
+    <button class="cad-btn" id="btn-switch" onclick="inspectPart('switch')">Zoom Step Switch</button>
+    <button class="cad-btn" id="btn-box" onclick="inspectPart('box')">Zoom Control Box</button>
+    <button class="cad-btn" id="btn-input-ckt" onclick="inspectPart('diodes')">Zoom Protection Ckt</button>
+    <button class="cad-btn" id="btn-esp32" onclick="focusOnEsp32()">Zoom ESP32</button>
+    <button class="cad-btn" id="btn-piezo" onclick="focusOnPiezo()">Zoom Piezos</button>
+    <button class="cad-btn" id="btn-sign" onclick="inspectPart('sign')">Zoom Sign</button>
+    <button class="cad-btn" id="btn-xray" onclick="toggleXRay()">Skeletal / X-Ray Mode</button>
+  </div>
+
+  <!-- Left Simulation & Footstep Control Dock -->
+  <div id="sim-dock">
+    <div class="dock-title">
+      <span>⚡ PIEZO KINETIC STOMP BENCH</span>
+      <span id="travel-badge">Δz: 0.0 mm</span>
+    </div>
+
+    <button class="stomp-btn" onclick="executeStomp()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M12 2v20M17 17l-5 5-5-5M8 6h8" />
+      </svg>
+      STRIKE / STOMP PIEZO TILE
+    </button>
+
+    <div class="slider-group">
+      <div class="slider-header">
+        <span>INCLUSIVE PEDESTRIAN WEIGHT</span>
+        <span class="val" id="weight-val" style="color:var(--accent-amber); font-weight:bold;">160 kg (HEAVY
+          LOAD)</span>
+      </div>
+      <input type="range" id="weight-slider" min="50" max="250" step="5" value="160"
+        oninput="adjustPedestrianWeight(this.value)">
+      <div style="display:flex; gap:4px; margin-top:2px;">
+        <button class="cad-btn" style="padding:2px 6px; font-size:9.5px; flex:1;" id="btn-w-60"
+          onclick="setWeightPreset(60)">60kg Light</button>
+        <button class="cad-btn" style="padding:2px 6px; font-size:9.5px; flex:1;" id="btn-w-85"
+          onclick="setWeightPreset(85)">85kg Normal</button>
+        <button class="cad-btn active" style="padding:2px 6px; font-size:9.5px; flex:1;" id="btn-w-160"
+          onclick="setWeightPreset(160)">160kg Heavy</button>
+        <button class="cad-btn" style="padding:2px 6px; font-size:9.5px; flex:1;" id="btn-w-250"
+          onclick="setWeightPreset(250)">250kg Surge</button>
+      </div>
+    </div>
+
+    <!-- Tread Compression Depth Control -->
+    <div class="slider-group" style="margin-top:6px;">
+      <div class="slider-header">
+        <span>TREAD COMPRESSION DEPTH</span>
+        <span class="val" id="depth-val">0.0 / 3.0 mm</span>
+      </div>
+      <input type="range" id="depth-slider" min="0" max="3" step="0.1" value="0"
+        oninput="manualDepthAdjust(this.value)">
+    </div>
+
+    <!-- Structural Stress & Load Bypass Matrix -->
+    <div
+      style="background:rgba(15,23,42,0.92); border:1px solid rgba(245,158,11,0.35); border-radius:6px; padding:8px; display:flex; flex-direction:column; gap:4px; font-size:10px; font-family:var(--font-mono);">
+      <div style="display:flex; justify-content:space-between;">
+        <span style="color:var(--text-dim);">DYNAMIC FOOT STRIKE:</span>
+        <span id="txt-force" style="color:#fff; font-weight:bold;">1,962 N (160 kg)</span>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span style="color:var(--text-dim);">STEEL ANVILS DIVERTED:</span>
+        <span id="txt-bypassed" style="color:var(--accent-green); font-weight:bold;">1,937 N (98.7% BYPASS)</span>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span style="color:var(--text-dim);">FORCE ON PIEZOS / GEARS:</span>
+        <span id="txt-sensor-load" style="color:var(--accent-cyan); font-weight:bold;">25 N (SAFE CALIBRATED)</span>
+      </div>
+      <div style="display:flex; justify-content:space-between;">
+        <span style="color:var(--text-dim);">STRUCTURAL SAFETY FACTOR:</span>
+        <span id="txt-fos" style="color:#22c55e; font-weight:bold;">2.6x (RATED 400kg)</span>
+      </div>
+      <div
+        style="margin-top:2px; text-align:center; padding:3px; background:rgba(34,197,94,0.15); border:1px solid #22c55e; border-radius:4px; color:#22c55e; font-weight:bold; font-size:9.5px;"
+        id="badge-integrity">
+        🛡️ STRUCTURALLY INTACT • 150KG+ RATED (ZERO DAMAGE)
+      </div>
+    </div>
+
+    <!-- Live Energy Gauges -->
+    <div class="tele-grid">
+      <div class="tele-card">
+        <span class="label">PIEZO RAW PEAK</span>
+        <span class="number" id="v-piezo" style="color: var(--accent-cyan);">0.0 V</span>
+      </div>
+      <div class="tele-card">
+        <span class="label">ESP32 ADC1 (GPIO 34)</span>
+        <span class="number" id="v-adc" style="color: var(--accent-green);">0.00 V</span>
+      </div>
+      <div class="tele-card">
+        <span class="label">LAST STRIKE ENERGY</span>
+        <span class="number" id="j-step" style="color: var(--accent-amber);">0.00 mJ</span>
+      </div>
+      <div class="tele-card">
+        <span class="label">5V BOOST RAIL</span>
+        <span class="number" id="v-rail" style="color: #38bdf8;">5.02 V</span>
+      </div>
+    </div>
+
+    <div
+      style="display:flex; justify-content:space-between; align-items:center; font-size:11px; font-family:var(--font-mono); color:var(--text-dim);">
+      <span>STEPS (GPIO 33 / RTC): <b id="step-count" style="color:var(--accent-cyan);">0</b></span>
+      <button class="cad-btn" style="padding:4px 8px; font-size:10px;" onclick="toggleAutoPedestrians()">
+        <span id="auto-btn-text">▶ Simulate Traffic</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Right Details & Engineering Specification Panel -->
+  <div id="right-panel">
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('explorer')">Parts Explorer</button>
+      <button class="tab-btn" onclick="switchTab('circuit')">Wiring &amp; BOM</button>
+      <button class="tab-btn" onclick="switchTab('analytics')">IPT102 Analytics</button>
+      <button class="tab-btn" onclick="switchTab('loads')">Connected Loads</button>
+    </div>
+
+    <!-- TAB 1: Complete Component Explorer ("Where is what, usage, and specs") -->
+    <div class="tab-content active" id="tab-explorer">
+      <!-- Active Focus Dossier (Populates on item click) -->
+      <div id="focus-dossier">
+        <h3 id="dossier-name">🔎 Click any part to inspect in 3D</h3>
+        <p id="dossier-desc" style="font-size:11px; color:#cbd5e1; line-height:1.4;">Select a component from the list
+          below or click directly in the 3D viewport to inspect its exact physical location, electrical usage,
+          tolerances, and zero-cost salvage source.</p>
+        <div id="dossier-specs" style="margin-top:4px;"></div>
+      </div>
+
+      <div
+        style="font-size:11px; font-family:var(--font-mono); color:var(--accent-amber); font-weight:bold; margin-top:4px;">
+        COMPONENTS DIRECTORY (CLICK TO ZOOM CAMERA):
+      </div>
+
+      <!-- Parts List -->
+      <div class="part-item" onclick="inspectPart('piezo')">
+        <div class="part-header">
+          <span class="part-title">🔘 4x Piezoelectric Transducer Discs</span>
+          <span class="part-category">TRANSDUCER</span>
+        </div>
+        <p class="part-desc">35mm brass discs with Lead Zirconate Titanate (PZT) ceramic center. Generates 15V-28V AC
+          pulses via flexural mechanical deformation.</p>
+        <div class="part-meta">
+          <span>LOC: 4 Quadrants (Base)</span>
+          <span>COST: ₱0 (E-waste buzzers) / ₱6 ea</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('foam')">
+        <div class="part-header">
+          <span class="part-title">🧽 EVA Foam Strike Impact Pads</span>
+          <span class="part-category">MECHANICAL</span>
+        </div>
+        <p class="part-desc">12mm dense rubber foam cylinders centered on each piezo ceramic disc. Concentrates foot
+          pressure while dampening shear shock so the brittle ceramic never shatters.</p>
+        <div class="part-meta">
+          <span>LOC: Glued on Piezo Center</span>
+          <span>COST: ₱0 (Old tsinelas/slipper)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('ring')">
+        <div class="part-header">
+          <span class="part-title">⭕ Rubber O-Ring Base Seats</span>
+          <span class="part-category">SUSPENSION</span>
+        </div>
+        <p class="part-desc">Circular rubber gasket ring supporting the outer brass rim of each piezo disc, leaving 2mm
+          clearance below so the ceramic center can flex downward freely.</p>
+        <div class="part-meta">
+          <span>LOC: Under Brass Rim</span>
+          <span>COST: ₱0 (Faucet washers/bottle rim)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('diodes')">
+        <div class="part-header">
+          <span class="part-title">⚡ Full-Wave Bridge Rectifier (1N5819)</span>
+          <span class="part-category">RECTIFICATION</span>
+        </div>
+        <p class="part-desc">4x Schottky barrier diodes with low forward drop (Vf ≈ 0.35V). Converts the erratic AC
+          voltage oscillations from the piezos into unidirectional pulsed DC with zero battery backfeed.</p>
+        <div class="part-meta">
+          <span>LOC: Control Box (Input Ckt)</span>
+          <span>COST: ₱0 (Old phone charger brick)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('cap')">
+        <div class="part-header">
+          <span class="part-title">🔋 2,200 µF / 25V Reservoir Capacitor</span>
+          <span class="part-category">BUFFER</span>
+        </div>
+        <p class="part-desc">Electrolytic capacitor acting as an intermediate energy reservoir. Buffers and smooths
+          high-voltage spikes so the ESP32 ADC1 can sample steady voltage without pulse collapse.</p>
+        <div class="part-meta">
+          <span>LOC: Control Box (Tank Buffer)</span>
+          <span>COST: ₱0 (Scrap motherboard/charger)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('divider')">
+        <div class="part-header">
+          <span class="part-title">📏 100kΩ / 10kΩ Voltage Divider (10:1)</span>
+          <span class="part-category">SENSING</span>
+        </div>
+        <p class="part-desc">Scales down high-voltage piezo spikes (0-30V) by 10x into safe 0-3.0V levels. Protects the
+          ESP32 ADC1 (GPIO 34) from exceeding the 3.3V logic ceiling.</p>
+        <div class="part-meta">
+          <span>LOC: Control Box (ADC1 Scaler)</span>
+          <span>COST: ₱0 (Scrap electronics)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('zener')">
+        <div class="part-header">
+          <span class="part-title">🛡️ 5.1V Zener Diode Surge Clamp</span>
+          <span class="part-category">PROTECTION</span>
+        </div>
+        <p class="part-desc">1N4733A Zener diode placed across ESP32 GPIO 34 and GND. Hard clamps voltage to safe levels if an
+          aggressive stomp exceeds expected harvesting limits.</p>
+        <div class="part-meta">
+          <span>LOC: Control Box (Surge Clamp)</span>
+          <span>COST: ₱0 (Scrap TV/charger board)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('transistor')">
+        <div class="part-header">
+          <span class="part-title">🔌 2N2222 NPN Load Switching Transistor</span>
+          <span class="part-category">ACTUATOR</span>
+        </div>
+        <p class="part-desc">NPN bipolar transistor controlled by ESP32 GPIO 23. Switches the connected 'I ❤️ QCU' fairy light
+          signboard ON/OFF safely without pulling heavy current from microcontroller pins.</p>
+        <div class="part-meta">
+          <span>LOC: Control Box (Sign Driver)</span>
+          <span>COST: ₱0 (Old radio/amplifier board)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('esp32')">
+        <div class="part-header">
+          <span class="part-title">🤖 ESP32-WROOM-32 IoT Microcontroller</span>
+          <span class="part-category">32-BIT DUAL CORE</span>
+        </div>
+        <p class="part-desc">Xtensa Dual-Core 240 MHz MCU with 520 KB SRAM, Wi-Fi 802.11 b/g/n, and BLE. Features 10 µA Deep Sleep, sampling ADC1 (GPIO 34) and waking up via footstep pulse on RTC GPIO 33.</p>
+        <div class="part-meta">
+          <span>LOC: Subsystem Bay Right</span>
+          <span>COST: ₱160 - ₱180 (Shopee / Project Core)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('battery')">
+        <div class="part-header">
+          <span class="part-title">🔋 Repurposed 3.7V 18650 Li-ion Battery</span>
+          <span class="part-category">ENERGY RESERVOIR</span>
+        </div>
+        <p class="part-desc">2,200 mAh 3.7V cylindrical cell salvaged from a dead powerbank. Tested with DMM for zero swelling. Acts as the main hybrid buffer to absorb trickle piezo charges and surge current for ESP32 Wi-Fi packets.</p>
+        <div class="part-meta">
+          <span>LOC: Subsystem Bay Left</span>
+          <span>COST: ₱0 (Salvaged from Dead Powerbank)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('tp4056')">
+        <div class="part-header">
+          <span class="part-title">🛡️ TP4056 + 1S BMS Protection Board</span>
+          <span class="part-category">CHARGE CONTROLLER</span>
+        </div>
+        <p class="part-desc">Dedicated CC/CV lithium charger with DW01A protection IC and FS8205A dual MOSFET. Prevents battery overcharge (&gt;4.25V), overdischarge (&lt;2.9V), and short circuit.</p>
+        <div class="part-meta">
+          <span>LOC: Mid Power Rail</span>
+          <span>COST: ₱15 (Electronics component)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('boost')">
+        <div class="part-header">
+          <span class="part-title">⚡ MT3608 DC-DC 5V Step-Up Boost Converter</span>
+          <span class="part-category">POWER REGULATION</span>
+        </div>
+        <p class="part-desc">High-frequency 1.2MHz boost converter stepping up 3.7V battery voltage to a rock-solid 5.02V rail (up to 93% efficiency) for ESP32 VIN and the 'I ❤️ QCU' sign display.</p>
+        <div class="part-meta">
+          <span>LOC: Power Rail Output</span>
+          <span>COST: ₱20 (Step-Up Module)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('switch')">
+        <div class="part-header">
+          <span class="part-title">🔘 Tactile Step-Count Limit Switch</span>
+          <span class="part-category">STEP SENSOR</span>
+        </div>
+        <p class="part-desc">Mechanical push-button switch inside the center of the tile. Actuated when top tread depresses 2.5mm, sending an immediate ground interrupt to ESP32 GPIO 33 for 100% bounce-free step counting.</p>
+        <div class="part-meta">
+          <span>LOC: Floor Tile Center</span>
+          <span>COST: ₱10 (Tactile Micro-Switch)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('box')">
+        <div class="part-header">
+          <span class="part-title">📦 External Control &amp; Telemetry Enclosure</span>
+          <span class="part-category">MODULAR HOUSING</span>
+        </div>
+        <p class="part-desc">Independent desktop/kiosk project box housing all electronics, lithium battery, and ESP32 away from footstep impacts. Features clear acrylic lid for visual inspection and easy USB servicing.</p>
+        <div class="part-meta">
+          <span>LOC: Standalone Kiosk</span>
+          <span>COST: ₱45 (Plastic Project Box)</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('laptop')">
+        <div class="part-header">
+          <span class="part-title">💻 Python Host Laptop (IPT102 Core)</span>
+          <span class="part-category">SOFTWARE</span>
+        </div>
+        <p class="part-desc">Runs Python PySerial ingestion listener, SQLite database engine, multi-interval analytical
+          calculations (1h, 10h, 1d, 2d), and Web Analytics Dashboard.</p>
+        <div class="part-meta">
+          <span>LOC: Table / Workstation</span>
+          <span>COST: Student Laptop</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('anvils')">
+        <div class="part-header">
+          <span class="part-title">🛡️ 4x Heavy-Duty Steel Load Anvils</span>
+          <span class="part-category">150KG+ BYPASS</span>
+        </div>
+        <p class="part-desc">Solid 28mm steel columns with polyurethane impact caps. When 150-250 kg steps down, 98.7%
+          of the load transfers directly into the foundation, bypassing the piezos!</p>
+        <div class="part-meta">
+          <span>LOC: Quadrant Inset (Base)</span>
+          <span>RATING: 400 kg Proof Load</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('stiffeners')">
+        <div class="part-header">
+          <span class="part-title">🏗️ Under-Plate Anti-Flex Stiffener Grid</span>
+          <span class="part-category">STRUCTURAL</span>
+        </div>
+        <p class="part-desc">Cross-braced steel angle frame bolted to the underside of the 18mm top plate. Eliminates
+          mid-span plate bowing and prevents wood cracking under heavy concentrated heel strikes.</p>
+        <div class="part-meta">
+          <span>LOC: Underside of Tread Plate</span>
+          <span>DEFLECTION: < 0.3mm Max</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('bushings')">
+        <div class="part-header">
+          <span class="part-title">🔘 Bronze Sleeve Anti-Racking Bushings</span>
+          <span class="part-category">ANTI-BINDING</span>
+        </div>
+        <p class="part-desc">Oil-impregnated bronze sleeve bushings in the guide holes. Prevents corner binding or
+          mechanical jamming when a heavy pedestrian steps unevenly on one edge.</p>
+        <div class="part-meta">
+          <span>LOC: Top Plate M8 Guides</span>
+          <span>ACTION: Smooth Linear Motion</span>
+        </div>
+      </div>
+
+      <div class="part-item" onclick="inspectPart('sign')">
+        <div class="part-header">
+          <span class="part-title">✨ 18 Micro-LED "I ❤️ QCU" Signboard</span>
+          <span class="part-category">CAMPUS DISPLAY</span>
+        </div>
+        <p class="part-desc">18 salvaged fairy-light micro-LEDs spelling "I ❤️ QCU". Full Bright (125mW, 1.5kΩ) &amp;
+          Dim Mode (18mW, 10kΩ). Direct visual confirmation of footstep energy capture!</p>
+        <div class="part-meta">
+          <span>LOC: Stand Beside Tile</span>
+          <span>COST: ₱0 (Recycled Christmas Lights)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Complete Pin-to-Pin Wiring & BOM -->
+    <div class="tab-content" id="tab-circuit">
+      <div class="load-box">
+        <h3 style="font-size:12px; color:var(--accent-cyan); font-family:var(--font-title);">⚡ Pin-to-Pin Circuit Architecture</h3>
+        <p style="font-size:11px; color:#cbd5e1;">Exact schematic linking physical piezos, protection circuits, battery storage, and ESP32 IoT pins:</p>
+      </div>
+
+      <table class="spec-table">
+        <tr>
+          <td class="dim">Kinetic Input</td>
+          <td class="val">4x PZT Piezo Discs in Parallel (Raw AC Spikes 15V - 35V)</td>
+        </tr>
+        <tr>
+          <td class="dim">Rectifier Bridge</td>
+          <td class="val">4x 1N5819 Schottky Diodes (Vf ≈ 0.35V; AC to DC conversion)</td>
+        </tr>
+        <tr>
+          <td class="dim">Surge Voltage Clamp</td>
+          <td class="val">5.1V Zener Diode (1N4733A) in reverse-parallel (protects boards)</td>
+        </tr>
+        <tr>
+          <td class="dim">Buffer Reservoir</td>
+          <td class="val">2,200 µF / 25V Low-ESR Electrolytic Capacitor (smooths DC pulses)</td>
+        </tr>
+        <tr>
+          <td class="dim">Battery Charge Module</td>
+          <td class="val">TP4056 Module with 1S DW01A BMS (IN+ from cap; BAT+ to 18650)</td>
+        </tr>
+        <tr>
+          <td class="dim">Energy Reservoir</td>
+          <td class="val">Repurposed 3.7V 18650 Li-ion Cell (2,200 mAh from Dead Powerbank)</td>
+        </tr>
+        <tr>
+          <td class="dim">DC-DC Step-Up Boost</td>
+          <td class="val">MT3608 Boost Module (Steps 3.7V battery to clean 5.02V DC rail)</td>
+        </tr>
+        <tr>
+          <td class="dim">ESP32 Power Rail</td>
+          <td class="val">VIN Pin &lt;- 5.02V Boost Rail | GND &lt;- Common System Ground</td>
+        </tr>
+        <tr>
+          <td class="dim">Voltage Sensor Sense</td>
+          <td class="val">10:1 Divider (100kΩ / 10kΩ) -&gt; ESP32 ADC1 Pin (GPIO 34)</td>
+        </tr>
+        <tr>
+          <td class="dim">Footstep Wakeup ISR</td>
+          <td class="val">Piezo Pulse via Opto/Zener -&gt; ESP32 RTC Wakeup (GPIO 33)</td>
+        </tr>
+        <tr>
+          <td class="dim">Sign Driver (I ❤️ QCU)</td>
+          <td class="val">ESP32 GPIO 23 -&gt; 1kΩ -&gt; 2N2222 / MOSFET Gate -&gt; 18 Fairy LEDs</td>
+        </tr>
+        <tr>
+          <td class="dim">IoT Telemetry Link</td>
+          <td class="val">ESP32 Wi-Fi (802.11 b/g/n UDP/HTTP) + USB UART Serial (115,200 bps)</td>
+        </tr>
+      </table>
+
+      <div class="load-box" style="margin-top:14px;">
+        <h3 style="font-size:12px; color:var(--accent-amber); font-family:var(--font-title);">🔌 Point-to-Point Master Wiring Schedule</h3>
+        <p style="font-size:11px; color:#cbd5e1;">Defines every single essential wire, exact origin, exact destination, and carried signal:</p>
+      </div>
+
+      <table class="spec-table" style="font-size:10px;">
+        <thead>
+          <tr style="color:var(--accent-cyan); text-align:left; border-bottom:1px solid #334155;">
+            <th>Wire ID</th>
+            <th>FROM (Source)</th>
+            <th>TO (Destination)</th>
+            <th>Signal &amp; Voltage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="color:#00e5ff; font-weight:bold;">W1A (Cyan)</td>
+            <td>Tile Piezos (Parallel V+)</td>
+            <td>Rectifier AC Pin 1</td>
+            <td>15V - 35V AC Spikes</td>
+          </tr>
+          <tr>
+            <td style="color:#64748b; font-weight:bold;">W1B (Navy)</td>
+            <td>Tile Piezos (Brass Rim)</td>
+            <td>Rectifier AC Pin 2</td>
+            <td>AC Negative Return</td>
+          </tr>
+          <tr>
+            <td style="color:#facc15; font-weight:bold;">W2 (Yellow)</td>
+            <td>Tile Limit Switch (NO Pin)</td>
+            <td>ESP32 GPIO 33 (RTC Wake)</td>
+            <td>Ground-Pulse Step ISR</td>
+          </tr>
+          <tr>
+            <td style="color:#ef4444; font-weight:bold;">W3 (Red)</td>
+            <td>2,200µF Cap / 5.1V Zener</td>
+            <td>TP4056 Module IN+</td>
+            <td>Clamped 5.1V DC Charge</td>
+          </tr>
+          <tr>
+            <td style="color:#94a3b8; font-weight:bold;">W4 (Black)</td>
+            <td>Rectifier Negative Ground</td>
+            <td>TP4056 Module IN-</td>
+            <td>DC Charging Return</td>
+          </tr>
+          <tr>
+            <td style="color:#ef4444; font-weight:bold;">W5A (Thick Red)</td>
+            <td>18650 Battery (+) Nipple</td>
+            <td>TP4056 / BMS BAT+ Pin</td>
+            <td>3.0V - 4.2V Protected Bus</td>
+          </tr>
+          <tr>
+            <td style="color:#94a3b8; font-weight:bold;">W5B (Thick Blk)</td>
+            <td>18650 Battery (-) Spring</td>
+            <td>TP4056 / BMS BAT- Pin</td>
+            <td>Battery Ground Return</td>
+          </tr>
+          <tr>
+            <td style="color:#ef4444; font-weight:bold;">W6A (Red)</td>
+            <td>TP4056 BMS OUT+</td>
+            <td>MT3608 Boost VIN+</td>
+            <td>3.0V - 4.2V Battery Rail</td>
+          </tr>
+          <tr>
+            <td style="color:#94a3b8; font-weight:bold;">W6B (Black)</td>
+            <td>TP4056 BMS OUT-</td>
+            <td>MT3608 Boost VIN-</td>
+            <td>BMS Ground Reference</td>
+          </tr>
+          <tr>
+            <td style="color:#f43f5e; font-weight:bold;">W7 (Glow Red)</td>
+            <td>MT3608 Boost VOUT+</td>
+            <td>ESP32 VIN &amp; Sign VCC</td>
+            <td>5.02V DC Regulated Rail</td>
+          </tr>
+          <tr>
+            <td style="color:#94a3b8; font-weight:bold;">W8 (Black)</td>
+            <td>MT3608 Boost VOUT-</td>
+            <td>ESP32 GND Pin</td>
+            <td>System Common Ground</td>
+          </tr>
+          <tr>
+            <td style="color:#22c55e; font-weight:bold;">W9 (Green)</td>
+            <td>10:1 Voltage Divider</td>
+            <td>ESP32 ADC1 (GPIO 34)</td>
+            <td>0 - 3.1V Safe Analog Sense</td>
+          </tr>
+          <tr>
+            <td style="color:#f97316; font-weight:bold;">W10 (Orange)</td>
+            <td>ESP32 GPIO 23</td>
+            <td>MOSFET Gate Driver</td>
+            <td>3.3V Logic Trigger</td>
+          </tr>
+          <tr>
+            <td style="color:#fbbf24; font-weight:bold;">W11 (Gold)</td>
+            <td>MOSFET Drain / Switch</td>
+            <td>18-LED "I ❤️ QCU" Sign</td>
+            <td>5V Switched Load (125mW)</td>
+          </tr>
+          <tr>
+            <td style="color:#38bdf8; font-weight:bold;">W12 (Black USB)</td>
+            <td>ESP32 Micro-USB Port</td>
+            <td>Laptop / PC USB Port</td>
+            <td>115,200 Baud JSON Serial</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 3: IPT102 Analytics & Time Horizons -->
+    <div class="tab-content" id="tab-analytics">
+      <div class="dock-title">
+        <span>OSCILLOSCOPE WAVEFORM</span>
+        <span style="color:var(--accent-cyan);">V_piezo(t)</span>
+      </div>
+      <canvas id="scope-canvas"></canvas>
+
+      <div
+        style="font-size:11px; font-family:var(--font-mono); color:var(--accent-cyan); font-weight:bold; margin-top:4px;">
+        IPT102 TIME-SERIES ANALYTICS (OBJECTIVE 3):
+      </div>
+
+      <table class="spec-table">
+        <tr>
+          <td class="dim">1-Hour Window</td>
+          <td class="val" id="val-1h">0.42 J (Class Changeover Rush)</td>
+        </tr>
+        <tr>
+          <td class="dim">10-Hour Window (QCU Shift)</td>
+          <td class="val" id="val-10h">4.85 J (7:00 AM - 5:00 PM)</td>
+        </tr>
+        <tr>
+          <td class="dim">1-Day Window (24h)</td>
+          <td class="val" id="val-24h">9.60 J (Full Day Activity)</td>
+        </tr>
+        <tr>
+          <td class="dim">2-Day Window (48h)</td>
+          <td class="val" id="val-48h">18.20 J (Face-to-Face vs Online)</td>
+        </tr>
+        <tr>
+          <td class="dim">Walking Cadence</td>
+          <td class="val" id="val-cadence">0.0 steps / min</td>
+        </tr>
+      </table>
+
+      <div
+        style="font-size:11px; font-family:var(--font-mono); color:var(--accent-green); font-weight:bold; margin-top:6px;">
+        DEVICE EQUIVALENCE CALCULATOR (OBJECTIVE 6):
+      </div>
+      <table class="spec-table">
+        <tr>
+          <td class="dim">4,000mAh Phone Charged</td>
+          <td class="val" id="val-phone">0.00 %</td>
+        </tr>
+        <tr>
+          <td class="dim">Emergency Talk-Time</td>
+          <td class="val" id="val-talk">0.00 mins</td>
+        </tr>
+        <tr>
+          <td class="dim">12V Pathway Lamp Runtime</td>
+          <td class="val" id="val-lamp">0.00 mins</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- TAB 4: Connected Loads (Objective 5) -->
+    <div class="tab-content" id="tab-loads">
+      <div class="load-box">
+        <h3 style="font-size:12px; color:var(--accent-green); font-family:var(--font-title);">🔌 Connected Active Loads
+          (Objective 5)</h3>
+        <p style="font-size:11px; color:#cbd5e1;">Real-time tracking of electronics drawing energy from the intermediate
+          battery buffer via the 2N2222 transistor switch:</p>
+      </div>
+
+      <div class="load-status-grid">
+        <div class="load-pill active" id="pill-phone">
+          <span class="name">5V USB CHARGER #1</span>
+          <span class="state" id="state-phone">1 SMARTPHONE CONNECTED</span>
+        </div>
+        <div class="load-pill" id="pill-lamp">
+          <span class="name">12V CAMPUS PATHWAY LIGHT</span>
+          <span class="state" id="state-lamp" style="color:var(--text-dim);">STANDBY (RELAY OFF)</span>
+        </div>
+        <div class="load-pill active" id="pill-sign">
+          <span class="name">18-LED "I ❤️ QCU" SIGN</span>
+          <span class="state" id="state-sign" style="color:#00e5ff;">ACTIVE (18 MICRO-LEDS)</span>
+        </div>
+      </div>
+
+      <!-- Glowing Neon Sign UI Preview -->
+      <div class="load-box" style="margin-top:8px; border-color:var(--border-cyan); text-align:center;">
+        <span style="font-size:10px; font-family:var(--font-mono); color:var(--text-dim);">18 MICRO-LED ILLUMINATED
+          OUTPUT</span>
+        <div
+          style="font-family:'Outfit',sans-serif; font-size:26px; font-weight:900; letter-spacing:4px; display:flex; justify-content:center; gap:14px; margin:6px 0;">
+          <span id="ui-led-i" style="color:#00e5ff; text-shadow:0 0 14px #00e5ff;">I</span>
+          <span id="ui-led-heart" style="color:#f43f5e; text-shadow:0 0 14px #f43f5e;">❤️</span>
+          <span id="ui-led-qcu" style="color:#00e5ff; text-shadow:0 0 14px #00e5ff;">QCU</span>
+        </div>
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; font-family:var(--font-mono);">
+          <span style="color:var(--text-dim);">Sign Mode: <b id="ui-sign-mode" style="color:var(--accent-green);">DIM
+              (18 mW)</b></span>
+          <button class="cad-btn" style="padding:2px 8px; font-size:10px;" onclick="toggleSignMode()">Toggle
+            Mode</button>
+        </div>
+      </div>
+
+      <div style="margin-top:6px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:11px; font-family:var(--font-mono); color:var(--text-dim);">Load Transistor (2N2222 /
+          D9):</span>
+        <button class="cad-btn" style="padding:4px 10px; font-size:11px;" onclick="toggleLoadTransistor()">
+          <span id="transistor-btn-text">⚡ Trigger Transistor</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Coordinates Display -->
+  <div id="viewport-hud">
+    CAM: X: <span id="cam-x">0</span> | Y: <span id="cam-y">0</span> | Z: <span id="cam-z">0</span> | FOCUS: <span
+      id="cam-focus" style="color:var(--accent-cyan);">FULL TILE</span>
+  </div>
+
+  <script>
+    /* =========================================================================
+       1. THREE.JS CAD SCENE SETUP
+       ========================================================================= */
+    const container = document.getElementById('cad-canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x070a13);
+
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 3500);
+    camera.position.set(520, 440, 600);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
+    controls.target.set(0, 30, 0);
+
+    // CAD Grid & Precision Axes
+    const gridHelper = new THREE.GridHelper(1000, 50, 0x00e5ff, 0x1e293b);
+    gridHelper.position.y = 0;
+    scene.add(gridHelper);
+
+    const axesHelper = new THREE.AxesHelper(100);
+    axesHelper.position.set(-250, 1, -250);
+    scene.add(axesHelper);
+
+    // Lighting Design
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    const mainLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    mainLight.position.set(400, 800, 300);
+    mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = 2048;
+    mainLight.shadow.mapSize.height = 2048;
+    scene.add(mainLight);
+
+    const cyanRim = new THREE.DirectionalLight(0x00e5ff, 0.45);
+    cyanRim.position.set(-400, 200, -300);
+    scene.add(cyanRim);
+
+    /* =========================================================================
+       2. MATERIALS LIBRARY
+       ========================================================================= */
+    const matBaseWood = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.6 });
+    const matTopWood = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5, transparent: true, opacity: 0.92 });
+    const matBrass = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.25 });
+    const matPZT = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.9, metalness: 0.05 });
+    const matRubberRing = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+    const matFoamPad = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.95 });
+    const matSteel = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
+    const matGold = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.8, roughness: 0.3 });
+    const matBreadboard = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.4 });
+    const matEsp32Pcb = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.35 });
+    const matRfShield = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.88, roughness: 0.22 });
+    const matPcbAntenna = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.75, roughness: 0.25 });
+    const matHeaderPins = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.9, roughness: 0.15 });
+    const matBatteryLiIon = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.35, roughness: 0.3 });
+    const matBatteryTerm = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.95, roughness: 0.15 });
+    const matBatteryHolder = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
+    const matModuleBlue = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.35 });
+    const matInductor = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.6 });
+    const matPotBrass = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8, roughness: 0.2 });
+    const matCapacitor = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, metalness: 0.5, roughness: 0.3 });
+    const matDiodeBlack = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 });
+    const matZenerOrange = new THREE.MeshStandardMaterial({ color: 0xe11d48, transparent: true, opacity: 0.85, roughness: 0.2 });
+    const matTransistor = new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.4 });
+    const matWireRed = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3, emissive: 0xb91c1c, emissiveIntensity: 0.4 });
+    const matWireBlack = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5, emissive: 0x020617, emissiveIntensity: 0.15 });
+    const matWireCyan = new THREE.MeshStandardMaterial({ color: 0x00e5ff, roughness: 0.25, emissive: 0x0891b2, emissiveIntensity: 0.5 });
+    const matWireYellow = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3, emissive: 0xca8a04, emissiveIntensity: 0.4 });
+    const matWireGreen = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.3, emissive: 0x15803d, emissiveIntensity: 0.4 });
+    const matWireOrange = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.3, emissive: 0xc2410c, emissiveIntensity: 0.4 });
+    const matLugGold = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.9, roughness: 0.15 });
+
+    /* =========================================================================
+       3. PARAMETRIC ASSEMBLY GRAPH & COMPONENT MAPPING
+       ========================================================================= */
+    const assemblyGroup = new THREE.Group();
+    scene.add(assemblyGroup);
+
+    const baseGroup = new THREE.Group();
+    const topPlateGroup = new THREE.Group();
+    const piezoArrayGroup = new THREE.Group();
+    const circuitGroup = new THREE.Group();
+    const boltsGroup = new THREE.Group();
+    const loadsGroup = new THREE.Group();
+
+    assemblyGroup.add(baseGroup);
+    assemblyGroup.add(topPlateGroup);
+    assemblyGroup.add(piezoArrayGroup);
+    assemblyGroup.add(circuitGroup);
+    assemblyGroup.add(boltsGroup);
+    assemblyGroup.add(loadsGroup);
+
+    // Component mesh dictionary for camera targeting & inspection
+    const partMeshes = {};
+
+    // 1. BASE FOUNDATION PLATE (450 x 450 x 12 mm)
+    const baseGeo = new THREE.BoxGeometry(450, 12, 450);
+    const baseMesh = new THREE.Mesh(baseGeo, matBaseWood);
+    baseMesh.position.y = 6;
+    baseMesh.receiveShadow = true;
+    baseGroup.add(baseMesh);
+    baseMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(baseGeo), new THREE.LineBasicMaterial({ color: 0x00e5ff })));
+
+    // 2. TOP TREAD PLATE (450 x 450 x 18 mm)
+    const RESTING_TOP_Y = 12 + 25 + 9; // 46 mm (compact 25mm cavity for piezo rig)
+    const topGeo = new THREE.BoxGeometry(450, 18, 450);
+    const topMesh = new THREE.Mesh(topGeo, matTopWood);
+    topMesh.position.y = RESTING_TOP_Y;
+    topMesh.castShadow = true;
+    topPlateGroup.add(topMesh);
+    topMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(topGeo), new THREE.LineBasicMaterial({ color: 0xffd600 })));
+
+    // UNDER-PLATE STEEL STIFFENER GRID (Cross Ribbing & Perimeter Bracing)
+    const matSteelRib = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.25 });
+    const ribX = new THREE.Mesh(new THREE.BoxGeometry(410, 10, 16), matSteelRib);
+    ribX.position.set(0, -9 - 5, 0); // Mounted flush to bottom face of topMesh
+    ribX.userData = { name: "Steel Stiffener Beam (X-Axis)", desc: "20x20mm steel angle cross-brace eliminating flexural plate bowing under 150kg+ loads." };
+    topMesh.add(ribX);
+
+    const ribZ = new THREE.Mesh(new THREE.BoxGeometry(16, 10, 410), matSteelRib);
+    ribZ.position.set(0, -9 - 5, 0);
+    ribZ.userData = { name: "Steel Stiffener Beam (Z-Axis)", desc: "Structural cross-reinforcement distributing heel shock into perimeter frame." };
+    topMesh.add(ribZ);
+    partMeshes['stiffeners'] = ribX;
+
+    // 4x HEAVY-DUTY STEEL LOAD ANVILS (150kg+ BYPASS STOPS)
+    // Sits on base plate at (±75mm, ±75mm). Height = 22.5mm (stops plate precisely at 2.5mm travel)
+    const anvilOffsets = [
+      { x: -75, z: -75 },
+      { x: 75, z: -75 },
+      { x: 75, z: 75 },
+      { x: -75, z: 75 }
+    ];
+    const matAnvilCap = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.6, metalness: 0.3 }); // Polyurethane yellow cap
+    const anvilsGroup = new THREE.Group();
+    baseGroup.add(anvilsGroup);
+
+    anvilOffsets.forEach((pos, i) => {
+      const aCol = new THREE.Group();
+      aCol.position.set(pos.x, 12, pos.z);
+
+      // Solid steel column (28mm OD, 18mm height)
+      const colMesh = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 18, 24), matSteel);
+      colMesh.position.y = 9;
+      colMesh.castShadow = true;
+      aCol.add(colMesh);
+
+      // Polyurethane Impact Bumper Cap (30mm OD, 4.5mm height)
+      const capMesh = new THREE.Mesh(new THREE.CylinderGeometry(15, 15, 4.5, 24), matAnvilCap);
+      capMesh.position.y = 18 + 2.25;
+      aCol.add(capMesh);
+
+      aCol.userData = {
+        name: `Heavy-Duty Steel Load Anvil #${i + 1}`,
+        desc: "Hard bypass pillar. At 2.5mm downward travel, absorbs 98.7% of human weight (up to 300+ kg) directly into floor, preventing sensor/gear crushing."
+      };
+      anvilsGroup.add(aCol);
+    });
+    partMeshes['anvils'] = anvilsGroup;
+
+    // 3. 4x PIEZOELECTRIC TRANSDUCER ASSEMBLIES (IN 4 QUADRANTS)
+    // Locations: (±120mm, ±120mm)
+    const piezoOffsets = [
+      { id: "piezo_tl", x: -120, z: -120, label: "Piezo Transducer 1 (Top-Left)" },
+      { id: "piezo_tr", x: 120, z: -120, label: "Piezo Transducer 2 (Top-Right)" },
+      { id: "piezo_br", x: 120, z: 120, label: "Piezo Transducer 3 (Bottom-Right)" },
+      { id: "piezo_bl", x: -120, z: 120, label: "Piezo Transducer 4 (Bottom-Left)" }
+    ];
+
+    const piezoComponents = [];
+
+    piezoOffsets.forEach((pos, idx) => {
+      const pGroup = new THREE.Group();
+      pGroup.position.set(pos.x, 12, pos.z); // Rooted on base plate top (y=12)
+
+      // A. Rubber O-Ring Base Seat (35mm OD, 24mm ID, 3mm thick)
+      const ringGeo = new THREE.CylinderGeometry(17.5, 17.5, 3, 24);
+      const ringMesh = new THREE.Mesh(ringGeo, matRubberRing);
+      ringMesh.position.y = 1.5;
+      ringMesh.userData = { name: "Rubber O-Ring Base Seat", desc: "Supports outer brass perimeter, providing 2mm center clearance so the disc can bend downward." };
+      pGroup.add(ringMesh);
+
+      // B. 35mm Brass Disc (Substrate)
+      const brassGeo = new THREE.CylinderGeometry(17.5, 17.5, 0.6, 32);
+      const brassMesh = new THREE.Mesh(brassGeo, matBrass);
+      brassMesh.position.y = 3.3;
+      brassMesh.castShadow = true;
+      pGroup.add(brassMesh);
+
+      // C. 25mm PZT Ceramic Disc (Active Piezoelectric Layer)
+      const pztGeo = new THREE.CylinderGeometry(12.5, 12.5, 0.4, 32);
+      const pztMesh = new THREE.Mesh(pztGeo, matPZT);
+      pztMesh.position.y = 3.8;
+      pztMesh.userData = { name: `Piezo Disc #${idx + 1} (35mm PZT)`, desc: "Converts footfall mechanical stress into 15V-28V electrical pulse via crystalline flexure." };
+      pGroup.add(pztMesh);
+
+      // D. EVA Foam Strike Impact Pad (12mm diameter, 6mm height)
+      const foamGeo = new THREE.CylinderGeometry(6, 6, 6, 16);
+      const foamMesh = new THREE.Mesh(foamGeo, matFoamPad);
+      foamMesh.position.y = 3.8 + 3.0; // Sits dead-center on PZT
+      foamMesh.userData = { name: `EVA Foam Strike Pad #${idx + 1}`, desc: "Glued to center of PZT disc. Dampens shear shock and transfers vertical footfall impact smoothly." };
+      pGroup.add(foamMesh);
+
+      // Wire Leads routing from Piezo to Central Floor Harness
+      const wirePath = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(pos.x, 15, pos.z),
+        new THREE.Vector3(pos.x * 0.45, 13.5, pos.z * 0.45),
+        new THREE.Vector3(0, 13, pos.z > 0 ? 80 : 0)
+      ]);
+      const wireGeo = new THREE.TubeGeometry(wirePath, 16, 1.4, 6, false);
+      const wireMesh = new THREE.Mesh(wireGeo, idx % 2 === 0 ? matWireRed : matWireBlack);
+      wireMesh.userData = {
+        name: `Piezo #${idx + 1} Dual Lead (${idx % 2 === 0 ? "V+ Red" : "V- Black"})`,
+        desc: `FROM: Piezo Ceramic Transducer #${idx + 1} -> TO: Tile Internal Parallel Bus & Cable Gland.`
+      };
+      piezoArrayGroup.add(wireMesh);
+
+      piezoComponents.push({ group: pGroup, pzt: pztMesh, foam: foamMesh, x: pos.x, z: pos.z });
+      piezoArrayGroup.add(pGroup);
+    });
+
+    partMeshes['piezo'] = piezoComponents[0].pzt;
+    partMeshes['foam'] = piezoComponents[0].foam;
+    partMeshes['ring'] = piezoArrayGroup;
+
+    // 4. 4x M8 GUIDE BOLTS WITH 3.0mm STOP COLLARS (AT 30mm INSET)
+    const boltCornerOffsets = [
+      { x: -195, z: -195 },
+      { x: 195, z: -195 },
+      { x: 195, z: 195 },
+      { x: -195, z: 195 }
+    ];
+
+    const boltShaftGeo = new THREE.CylinderGeometry(4, 4, 80, 16);
+    const nutGeo = new THREE.CylinderGeometry(7, 7, 5, 6);
+
+    boltCornerOffsets.forEach(pos => {
+      const bGroup = new THREE.Group();
+      bGroup.position.set(pos.x, 0, pos.z);
+
+      const shaft = new THREE.Mesh(boltShaftGeo, matSteel);
+      shaft.position.y = 40;
+      bGroup.add(shaft);
+
+      // Stop Collar Nut: Sets the 3.0mm hard bottom-out limit for piezo protection!
+      const stopNut = new THREE.Mesh(nutGeo, matGold);
+      stopNut.position.y = RESTING_TOP_Y - 9 - 3.0; // 3.0mm below top plate bottom
+      stopNut.userData = { name: "M8 Travel Stop Collar Nut", desc: "Mechanical hard stop limiting travel to 3.0mm so foot weight can NEVER crush the piezo discs." };
+      bGroup.add(stopNut);
+
+      // Bronze Sleeve Guide Bushing (Anti-Racking / Anti-Binding)
+      const bushingGeo = new THREE.CylinderGeometry(7, 7, 24, 16);
+      const bushingMesh = new THREE.Mesh(bushingGeo, matGold);
+      bushingMesh.position.y = RESTING_TOP_Y - 9;
+      bushingMesh.userData = { name: "Bronze Sleeve Guide Bushing", desc: "Low-friction sleeve preventing plate binding or cocking when stepped on unevenly." };
+      bGroup.add(bushingMesh);
+
+      boltsGroup.add(bGroup);
+    });
+    partMeshes['bolts'] = boltsGroup;
+    partMeshes['bushings'] = boltsGroup;
+
+    // 5. TILE INTERNAL SKELETON: TACTILE STEP-COUNT MICRO-SWITCH & CABLE GLAND
+    // (Notice: ZERO circuit boards or batteries inside the tile! Clean, safe, 100% mechanical)
+    const switchGroup = new THREE.Group();
+    switchGroup.position.set(0, 12, 0); // Positioned directly at center under the tread plate
+    circuitGroup.add(switchGroup);
+
+    // Limit Switch Body (Black Polycarbonate 18 x 10 x 8 mm)
+    const swBodyGeo = new THREE.BoxGeometry(18, 10, 8);
+    const swBodyMesh = new THREE.Mesh(swBodyGeo, matDiodeBlack);
+    swBodyMesh.position.y = 5;
+    switchGroup.add(swBodyMesh);
+
+    // Red Actuator Plunger
+    const plungerGeo = new THREE.CylinderGeometry(2, 2, 3, 12);
+    const plungerMesh = new THREE.Mesh(plungerGeo, new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 }));
+    plungerMesh.position.set(4, 11, 0);
+    switchGroup.add(plungerMesh);
+
+    // Stainless Steel Spring Roller Lever Arm
+    const leverGeo = new THREE.BoxGeometry(22, 1.2, 5);
+    const leverMesh = new THREE.Mesh(leverGeo, matSteel);
+    leverMesh.position.set(2, 11.5, 0);
+    leverMesh.rotation.z = -0.15;
+    switchGroup.add(leverMesh);
+
+    switchGroup.userData = {
+      name: "Tactile Step-Count Limit Switch",
+      desc: "Mechanical push button switch mounted beneath the center tread. When a pedestrian steps down 2.5mm, it closes contact to Ground, triggering a clean hardware interrupt on ESP32 GPIO 33 for 100% accurate step counting."
+    };
+    partMeshes['switch'] = switchGroup;
+
+    // Tile Internal Wire Trunks running from Center to Rear Cable Gland
+    const wTilePiezoPos = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, 13, 80),
+      new THREE.Vector3(0, 13, 160),
+      new THREE.Vector3(0, 12, 225)
+    ]);
+    const wTilePiezoPosMesh = new THREE.Mesh(new THREE.TubeGeometry(wTilePiezoPos, 14, 1.6, 6, false), matWireCyan);
+    wTilePiezoPosMesh.userData = { name: "Wire T1: Tile Piezo Positive Trunk (Cyan)", desc: "FROM: 4x Piezo Ceramic Parallel Bus -> TO: Rear Cable Gland (Terminal 1)." };
+    circuitGroup.add(wTilePiezoPosMesh);
+
+    const wTilePiezoNeg = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(5, 13, 80),
+      new THREE.Vector3(6, 13, 160),
+      new THREE.Vector3(5, 12, 225)
+    ]);
+    const wTilePiezoNegMesh = new THREE.Mesh(new THREE.TubeGeometry(wTilePiezoNeg, 14, 1.6, 6, false), matWireBlack);
+    wTilePiezoNegMesh.userData = { name: "Wire T2: Tile Piezo Ground Trunk (Black)", desc: "FROM: 4x Piezo Outer Brass Rim Bus -> TO: Rear Cable Gland (Terminal 2)." };
+    circuitGroup.add(wTilePiezoNegMesh);
+
+    const wTileSwSig = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(2, 14, 0),
+      new THREE.Vector3(12, 13, 90),
+      new THREE.Vector3(3, 12, 225)
+    ]);
+    const wTileSwSigMesh = new THREE.Mesh(new THREE.TubeGeometry(wTileSwSig, 16, 1.6, 6, false), matWireYellow);
+    wTileSwSigMesh.userData = { name: "Wire T3: Limit Switch Signal Line (Yellow)", desc: "FROM: Tactile Step-Count Switch (NO Pin) -> TO: Rear Cable Gland (Terminal 3)." };
+    circuitGroup.add(wTileSwSigMesh);
+
+    const wTileSwGnd = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-2, 14, 0),
+      new THREE.Vector3(-10, 13, 90),
+      new THREE.Vector3(-4, 12, 225)
+    ]);
+    const wTileSwGndMesh = new THREE.Mesh(new THREE.TubeGeometry(wTileSwGnd, 16, 1.6, 6, false), matWireBlack);
+    wTileSwGndMesh.userData = { name: "Wire T4: Limit Switch Ground Reference (Black)", desc: "FROM: Tactile Step-Count Switch (COM Pin) -> TO: Rear Cable Gland (Terminal 4)." };
+    circuitGroup.add(wTileSwGndMesh);
+
+    // Tile Heavy-Duty Cable Gland (Exits rear of base plate)
+    const glandGeo = new THREE.CylinderGeometry(6, 6, 14, 16);
+    const glandMesh = new THREE.Mesh(glandGeo, matDiodeBlack);
+    glandMesh.rotation.x = Math.PI / 2;
+    glandMesh.position.set(0, 12, 225);
+    glandMesh.userData = { name: "IP67 Industrial Cable Gland", desc: "Watertight exit port for the 4-core shielded umbilical harness running from the tile to the external control box." };
+    circuitGroup.add(glandMesh);
+
+    // 6. EXTERNAL CONTROL & TELEMETRY BOX (STANDALONE DESK / KIOSK UNIT)
+    // Placed beside the tile at x = 320, z = 0
+    const ctrlBoxGroup = new THREE.Group();
+    ctrlBoxGroup.position.set(310, 0, 0);
+    circuitGroup.add(ctrlBoxGroup);
+
+    // Enclosure Base (ABS Plastic Chassis: 220 x 140 x 50 mm)
+    const boxBaseGeo = new THREE.BoxGeometry(220, 10, 140);
+    const matBoxDark = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.5 });
+    const boxBaseMesh = new THREE.Mesh(boxBaseGeo, matBoxDark);
+    boxBaseMesh.position.y = 5;
+    ctrlBoxGroup.add(boxBaseMesh);
+
+    // Transparent Tinted Acrylic Enclosure Cover (Removable for easy maintenance)
+    const matCoverAcrylic = new THREE.MeshStandardMaterial({ color: 0x0284c7, transparent: true, opacity: 0.28, roughness: 0.1 });
+    const boxCoverGeo = new THREE.BoxGeometry(220, 45, 140);
+    const boxCoverMesh = new THREE.Mesh(boxCoverGeo, matCoverAcrylic);
+    boxCoverMesh.position.y = 32.5;
+    ctrlBoxGroup.add(boxCoverMesh);
+    boxCoverMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(boxCoverGeo), new THREE.LineBasicMaterial({ color: 0x00e5ff })));
+    boxCoverMesh.userData = {
+      name: "External Control & Telemetry Enclosure",
+      desc: "Protective modular project box. Houses all sensitive active electronics, lithium battery, and ESP32 away from foot vibrations and stomp hazards."
+    };
+    partMeshes['box'] = boxCoverMesh;
+
+    // A. AC-to-DC Rectifier, 5.1V Zener Clamp & 2,200µF Reservoir Breadboard (Inside Box at x = -60, z = -25)
+    const modInputGroup = new THREE.Group();
+    modInputGroup.position.set(-55, 12, -25);
+    ctrlBoxGroup.add(modInputGroup);
+
+    const miniBbGeo = new THREE.BoxGeometry(65, 6, 45);
+    const miniBbMesh = new THREE.Mesh(miniBbGeo, matBreadboard);
+    miniBbMesh.position.y = 3;
+    modInputGroup.add(miniBbMesh);
+
+    // 4x 1N5819 Schottky Diodes
+    const diodeGeo = new THREE.CylinderGeometry(1.8, 1.8, 7, 12);
+    for (let d = 0; d < 4; d++) {
+      const diode = new THREE.Mesh(diodeGeo, matDiodeBlack);
+      diode.rotation.z = Math.PI / 2;
+      diode.position.set(-20 + d * 5.5, 7.5, -10);
+      modInputGroup.add(diode);
+    }
+
+    // 2,200 µF / 25V Electrolytic Reservoir Capacitor
+    const capGeo = new THREE.CylinderGeometry(5.5, 5.5, 16, 16);
+    const capMesh = new THREE.Mesh(capGeo, matCapacitor);
+    capMesh.position.set(5, 12, -10);
+    modInputGroup.add(capMesh);
+
+    // 5.1V Zener Diode Surge Clamp
+    const zenerGeo = new THREE.CylinderGeometry(1.5, 1.5, 6, 10);
+    const zenerMesh = new THREE.Mesh(zenerGeo, matZenerOrange);
+    zenerMesh.rotation.z = Math.PI / 2;
+    zenerMesh.position.set(18, 7.5, -10);
+    modInputGroup.add(zenerMesh);
+
+    // 100kΩ / 10kΩ Precision Voltage Divider Resistors
+    const dividerGroup = new THREE.Group();
+    const resGeo = new THREE.CylinderGeometry(1.2, 1.2, 7, 8);
+    const matResistorSky = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.35 });
+    const r1Mesh = new THREE.Mesh(resGeo, matResistorSky);
+    r1Mesh.rotation.z = Math.PI / 2;
+    r1Mesh.position.set(-8, 7.5, 10);
+    const r2Mesh = new THREE.Mesh(resGeo, matResistorSky);
+    r2Mesh.rotation.z = Math.PI / 2;
+    r2Mesh.position.set(4, 7.5, 10);
+    dividerGroup.add(r1Mesh);
+    dividerGroup.add(r2Mesh);
+    dividerGroup.userData = {
+      name: "100kΩ / 10kΩ Precision Voltage Divider",
+      desc: "Scales down raw 0-30V harvested voltage spikes to safe 0-3.0V levels for ESP32 ADC1 (GPIO 34) sampling."
+    };
+    modInputGroup.add(dividerGroup);
+
+    // 2N2222 NPN Load Switching Transistor
+    const transGroup = new THREE.Group();
+    const transBodyGeo = new THREE.CylinderGeometry(2, 2, 4.5, 12, 1, false, 0, Math.PI);
+    const transMesh = new THREE.Mesh(transBodyGeo, matTransistor);
+    transMesh.position.set(18, 7.5, 10);
+    transGroup.add(transMesh);
+    transGroup.userData = {
+      name: "2N2222 NPN Load Switching Transistor",
+      desc: "Switches the external 'I ❤️ QCU' sign display ON/OFF when triggered by ESP32 GPIO 23 without overloading microcontroller pins."
+    };
+    modInputGroup.add(transGroup);
+
+    modInputGroup.userData = {
+      name: "AC/DC Rectifier, Surge Clamp & Divider Stage",
+      desc: "4x 1N5819 Schottky diodes convert AC footstep pulses to DC (0.35V drop). 5.1V Zener clamps dangerous spikes, 2,200 µF capacitor buffers energy smoothly, and 10:1 divider scales signal to ESP32 ADC1 (GPIO 34)."
+    };
+    partMeshes['diodes'] = modInputGroup;
+    partMeshes['cap'] = capMesh;
+    partMeshes['zener'] = zenerMesh;
+    partMeshes['divider'] = dividerGroup;
+    partMeshes['transistor'] = transGroup;
+
+    // B. Repurposed 3.7V 18650 Li-ion Battery & Holder Cradle (Inside Box at x = -55, z = 30)
+    const battGroup = new THREE.Group();
+    battGroup.position.set(-55, 12, 30);
+    ctrlBoxGroup.add(battGroup);
+
+    const holderMesh = new THREE.Mesh(new THREE.BoxGeometry(74, 9, 22), matBatteryHolder);
+    holderMesh.position.y = 4.5;
+    battGroup.add(holderMesh);
+
+    const battMesh = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 65, 20), matBatteryLiIon);
+    battMesh.rotation.z = Math.PI / 2;
+    battMesh.position.set(0, 11, 0);
+    battGroup.add(battMesh);
+
+    const posTermMesh = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 3, 12), matBatteryTerm);
+    posTermMesh.rotation.z = Math.PI / 2;
+    posTermMesh.position.set(33.5, 11, 0);
+    battGroup.add(posTermMesh);
+
+    const negTermMesh = new THREE.Mesh(new THREE.CylinderGeometry(7, 7, 2, 12), matBatteryTerm);
+    negTermMesh.rotation.z = Math.PI / 2;
+    negTermMesh.position.set(-33, 11, 0);
+    battGroup.add(negTermMesh);
+
+    battGroup.userData = {
+      name: "Repurposed 3.7V 18650 Li-ion Battery",
+      desc: "Salvaged from dead powerbank. Housed safely in external box away from stomp impact. Provides 2,200 mAh energy reservoir for ESP32 Wi-Fi and fairy lights."
+    };
+    partMeshes['battery'] = battGroup;
+
+    // C. TP4056 + 1S BMS Charge Protection Board (Inside Box at x = 10, z = -25)
+    const tpGroup = new THREE.Group();
+    tpGroup.position.set(10, 12, -25);
+    ctrlBoxGroup.add(tpGroup);
+
+    const tpPcbGeo = new THREE.BoxGeometry(28, 4, 18);
+    const tpPcb = new THREE.Mesh(tpPcbGeo, matModuleBlue);
+    tpPcb.position.y = 2;
+    tpGroup.add(tpPcb);
+    tpPcb.add(new THREE.LineSegments(new THREE.EdgesGeometry(tpPcbGeo), new THREE.LineBasicMaterial({ color: 0x38bdf8 })));
+
+    const tpIc = new THREE.Mesh(new THREE.BoxGeometry(6, 2, 5), matDiodeBlack);
+    tpIc.position.set(-2, 4.5, 0);
+    tpGroup.add(tpIc);
+
+    const tpUsb = new THREE.Mesh(new THREE.BoxGeometry(6, 4, 8), matSteel);
+    tpUsb.position.set(-12, 4, 0);
+    tpGroup.add(tpUsb);
+
+    tpGroup.userData = {
+      name: "TP4056 + 1S BMS Charge Controller",
+      desc: "Regulates safe CC/CV lithium charging and cuts off at 2.9V/4.25V to prevent over-discharge or overcharge."
+    };
+    partMeshes['tp4056'] = tpGroup;
+
+    // D. MT3608 DC-DC 5V Step-Up Boost Converter Module (Inside Box at x = 10, z = 25)
+    const boostGroup = new THREE.Group();
+    boostGroup.position.set(10, 12, 25);
+    ctrlBoxGroup.add(boostGroup);
+
+    const boostPcbGeo = new THREE.BoxGeometry(36, 4, 17);
+    const boostPcb = new THREE.Mesh(boostPcbGeo, matModuleBlue);
+    boostPcb.position.y = 2;
+    boostGroup.add(boostPcb);
+    boostPcb.add(new THREE.LineSegments(new THREE.EdgesGeometry(boostPcbGeo), new THREE.LineBasicMaterial({ color: 0x00e5ff })));
+
+    const indMesh = new THREE.Mesh(new THREE.BoxGeometry(7, 5, 7), matInductor);
+    indMesh.position.set(-6, 5, 0);
+    boostGroup.add(indMesh);
+
+    const potMesh = new THREE.Mesh(new THREE.BoxGeometry(6, 7, 5), matModuleBlue);
+    potMesh.position.set(8, 6, -3);
+    boostGroup.add(potMesh);
+    const potScrew = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 2, 8), matPotBrass);
+    potScrew.position.set(8, 10, -3);
+    boostGroup.add(potScrew);
+
+    boostGroup.userData = {
+      name: "MT3608 DC-DC 5V Boost Converter",
+      desc: "Steps up 3.7V from the battery to a rock-solid 5.02V rail for the ESP32 and 'I ❤️ QCU' sign."
+    };
+    partMeshes['boost'] = boostGroup;
+
+    // E. ESP32-WROOM-32 IoT MICROCONTROLLER MODULE (Inside Box at x = 65, z = 0)
+    const esp32Group = new THREE.Group();
+    esp32Group.position.set(65, 12, 0);
+    ctrlBoxGroup.add(esp32Group);
+
+    const espPcbGeo = new THREE.BoxGeometry(52, 4, 28);
+    const espPcb = new THREE.Mesh(espPcbGeo, matEsp32Pcb);
+    espPcb.position.y = 2;
+    esp32Group.add(espPcb);
+    espPcb.add(new THREE.LineSegments(new THREE.EdgesGeometry(espPcbGeo), new THREE.LineBasicMaterial({ color: 0x38bdf8 })));
+
+    const rfShield = new THREE.Mesh(new THREE.BoxGeometry(18, 3, 18), matRfShield);
+    rfShield.position.set(-4, 5, 0);
+    esp32Group.add(rfShield);
+
+    const antMesh = new THREE.Mesh(new THREE.BoxGeometry(8, 1, 24), matPcbAntenna);
+    antMesh.position.set(-20, 4.3, 0);
+    esp32Group.add(antMesh);
+
+    // Dual 19-Pin Gold Header Strips
+    for (let p = 0; p < 19; p++) {
+      const pinX = -20 + p * 2.2;
+      const pinTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 6, 1.2), matHeaderPins);
+      pinTop.position.set(pinX, 5.5, 12);
+      esp32Group.add(pinTop);
+      const pinBot = new THREE.Mesh(new THREE.BoxGeometry(1.2, 6, 1.2), matHeaderPins);
+      pinBot.position.set(pinX, 5.5, -12);
+      esp32Group.add(pinBot);
+    }
+
+    const espUsb = new THREE.Mesh(new THREE.BoxGeometry(8, 4, 7), matSteel);
+    espUsb.position.set(23, 4.5, 0);
+    esp32Group.add(espUsb);
+
+    const espLedBlue = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.2, 1.5), new THREE.MeshStandardMaterial({ color: 0x00e5ff, emissive: 0x00e5ff, emissiveIntensity: 1.0 }));
+    espLedBlue.position.set(10, 4.5, 6);
+    esp32Group.add(espLedBlue);
+
+    esp32Group.userData = {
+      name: "ESP32-WROOM-32 IoT Microcontroller",
+      desc: "32-bit Dual-Core 240MHz MCU with Wi-Fi/BLE. Operates in 10µA Deep Sleep. Wakes up when the tile limit switch is pressed (GPIO 33), updates live step count on PC, and powers fairy lights!"
+    };
+    partMeshes['esp32'] = esp32Group;
+
+    // F. Push Button Power Switch on Box Front Face (From User Diagram)
+    const pwrBtnMesh = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 5, 16), new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 }));
+    pwrBtnMesh.rotation.x = Math.PI / 2;
+    pwrBtnMesh.position.set(0, 25, 70);
+    pwrBtnMesh.userData = { name: "Manual ON/OFF Push Button Switch", desc: "Main power button on the external control box. Allows toggling fairy lights manually or enabling automated footstep-driven mode." };
+    ctrlBoxGroup.add(pwrBtnMesh);
+
+    // =========================================================================
+    // POINT-TO-POINT ESSENTIAL INTERNAL WIRING HARNESS (INSIDE EXTERNAL BOX)
+    // =========================================================================
+    function addBoxWire(points, mat, rad, name, desc) {
+      const curve = new THREE.CatmullRomCurve3(points);
+      const geo = new THREE.TubeGeometry(curve, 16, rad, 8, false);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.userData = { name, desc };
+      ctrlBoxGroup.add(mesh);
+
+      const lugStart = new THREE.Mesh(new THREE.CylinderGeometry(rad * 1.5, rad * 1.5, 2.5, 10), matLugGold);
+      lugStart.position.copy(points[0]);
+      lugStart.userData = { name: `${name} [Start Terminal]`, desc };
+      ctrlBoxGroup.add(lugStart);
+
+      const lugEnd = new THREE.Mesh(new THREE.CylinderGeometry(rad * 1.5, rad * 1.5, 2.5, 10), matLugGold);
+      lugEnd.position.copy(points[points.length - 1]);
+      lugEnd.userData = { name: `${name} [End Terminal]`, desc };
+      ctrlBoxGroup.add(lugEnd);
+
+      return mesh;
+    }
+
+    // W1A: Raw Piezo AC+ Input (Cyan)
+    addBoxWire([
+      new THREE.Vector3(-105, 16, 0),
+      new THREE.Vector3(-90, 18, -18),
+      new THREE.Vector3(-70, 18, -32)
+    ], matWireCyan, 1.8, "Wire W1A: Piezo Raw AC+ Input (Cyan)", "FROM: Floor Tile Umbilical Cable (Terminal 1) -> TO: 1N5819 Schottky Bridge AC Pin 1. Carries positive AC kinetic voltage spike (15V-35V).");
+
+    // W1B: Raw Piezo AC- Return (Navy)
+    addBoxWire([
+      new THREE.Vector3(-105, 16, 0),
+      new THREE.Vector3(-90, 16, -10),
+      new THREE.Vector3(-70, 18, -18)
+    ], matDiodeBlack, 1.8, "Wire W1B: Piezo Raw AC- Return (Navy)", "FROM: Floor Tile Umbilical Cable (Terminal 2) -> TO: 1N5819 Schottky Bridge AC Pin 2. Carries negative AC kinetic return.");
+
+    // W2: Tactile Step Interrupt Trigger Line (Signal Yellow)
+    addBoxWire([
+      new THREE.Vector3(-105, 16, 0),
+      new THREE.Vector3(-50, 24, 0),
+      new THREE.Vector3(10, 24, 15),
+      new THREE.Vector3(65, 18, 12)
+    ], matWireYellow, 1.8, "Wire W2: Step Count Interrupt Trigger (Signal Yellow)", "FROM: Floor Tile Limit Switch (via Umbilical Terminal 3) -> TO: ESP32 GPIO 33 (RTC Interrupt). Fires instant hardware interrupt on footstep!");
+
+    // W3: Clamped Rectified DC Output (+) (Bright Red)
+    addBoxWire([
+      new THREE.Vector3(-45, 18, -30),
+      new THREE.Vector3(-22, 17, -35),
+      new THREE.Vector3(0, 16, -30)
+    ], matWireRed, 1.8, "Wire W3: Rectified Clamped DC+ Feed (Red)", "FROM: Bridge Rectifier & 5.1V Zener Clamp -> TO: TP4056 Module IN+. Delivers safe 5.1V max DC trickle charge into lithium charger.");
+
+    // W4: Rectified Ground Return (-) (Solid Black)
+    addBoxWire([
+      new THREE.Vector3(-45, 18, -18),
+      new THREE.Vector3(-22, 16, -20),
+      new THREE.Vector3(0, 16, -20)
+    ], matWireBlack, 1.8, "Wire W4: Rectified DC Ground Return (Black)", "FROM: Rectifier Negative DC Out -> TO: TP4056 Module IN-. Completes the DC charging circuit.");
+
+    // W5A: 18650 Battery Positive Terminal (Thick Red)
+    addBoxWire([
+      new THREE.Vector3(-21.5, 23, 30),
+      new THREE.Vector3(-5, 22, 10),
+      new THREE.Vector3(10, 16, -20)
+    ], matWireRed, 2.2, "Wire W5A: 18650 Battery V+ Line (Thick Red)", "FROM: Repurposed 18650 Li-ion Battery (+) Nipple -> TO: TP4056 / 1S BMS BAT+ Pin. Bidirectional protected CC/CV charging & discharge loop.");
+
+    // W5B: 18650 Battery Negative Terminal (Thick Black)
+    addBoxWire([
+      new THREE.Vector3(-88, 23, 30),
+      new THREE.Vector3(-45, 21, -5),
+      new THREE.Vector3(10, 16, -30)
+    ], matWireBlack, 2.2, "Wire W5B: 18650 Battery Negative Line (Thick Black)", "FROM: Repurposed 18650 Li-ion Battery (-) Spring Terminal -> TO: TP4056 / 1S BMS BAT- Pin.");
+
+    // W6A: BMS Protected Battery Vout+ (Red)
+    addBoxWire([
+      new THREE.Vector3(20, 16, -20),
+      new THREE.Vector3(15, 18, 5),
+      new THREE.Vector3(-5, 16, 28)
+    ], matWireRed, 1.8, "Wire W6A: BMS Protected Vout+ (Red)", "FROM: TP4056 BMS OUT+ -> TO: MT3608 Boost Converter VIN+. Supplies raw 3.0V - 4.2V protected battery power.");
+
+    // W6B: BMS Protected Ground (Black)
+    addBoxWire([
+      new THREE.Vector3(20, 16, -30),
+      new THREE.Vector3(8, 16, 0),
+      new THREE.Vector3(-5, 16, 20)
+    ], matWireBlack, 1.8, "Wire W6B: BMS Protected Ground (Black)", "FROM: TP4056 BMS OUT- -> TO: MT3608 Boost Converter VIN-. Safe low-voltage ground return.");
+
+    // W7: Regulated 5.02V Power Rail (Glowing Red)
+    addBoxWire([
+      new THREE.Vector3(23, 16, 28),
+      new THREE.Vector3(45, 20, 20),
+      new THREE.Vector3(80, 18, -12)
+    ], matWireRed, 2.0, "Wire W7: Regulated 5.02V DC Power Rail (Glowing Red)", "FROM: MT3608 Boost Converter VOUT+ -> TO: ESP32 VIN Pin & Fairy Light VCC. Rock-solid 5.02V regulated DC bus.");
+
+    // W8: Common System Ground (Solid Black)
+    addBoxWire([
+      new THREE.Vector3(23, 16, 20),
+      new THREE.Vector3(50, 16, 16),
+      new THREE.Vector3(80, 18, 12)
+    ], matWireBlack, 2.0, "Wire W8: System Common Ground Rail (Black)", "FROM: MT3608 Boost VOUT- -> TO: ESP32 GND Pin. Unifies common reference ground across all electronic modules.");
+
+    // W9: Analog Voltage Telemetry Sense (Vibrant Green)
+    addBoxWire([
+      new THREE.Vector3(-37, 18, -25),
+      new THREE.Vector3(15, 22, -15),
+      new THREE.Vector3(65, 18, -12)
+    ], matWireGreen, 1.6, "Wire W9: Clamped Piezo Voltage Sense (Green)", "FROM: 10:1 Voltage Divider Junction -> TO: ESP32 ADC1 Pin (GPIO 34). Safely measures pulse amplitude (0 - 3.1V max).");
+
+    // W10: Fairy Light MOSFET Gate Driver (Vibrant Orange)
+    addBoxWire([
+      new THREE.Vector3(50, 18, -12),
+      new THREE.Vector3(30, 20, 30),
+      new THREE.Vector3(0, 22, 65)
+    ], matWireOrange, 1.8, "Wire W10: Fairy Light MOSFET Gate Control (Orange)", "FROM: ESP32 GPIO 23 -> TO: MOSFET Gate Driver & Front Switch. Turns the 'I ❤️ QCU' sign ON upon footstep detection!");
+
+    // W11: Signboard Power Output Feed (Braided Gold/Cyan Wire)
+    addBoxWire([
+      new THREE.Vector3(0, 25, 70),
+      new THREE.Vector3(-120, 35, 45),
+      new THREE.Vector3(-250, 45, 15),
+      new THREE.Vector3(-320, 60, 0)
+    ], matLugGold, 2.2, "Wire W11: 'I ❤️ QCU' Signboard Power Feed (Gold)", "FROM: External Control Box 5V Output Switch -> TO: 18 Micro-LED Signboard. Powers the campus display.");
+
+    // 7. HEAVY-DUTY UMBILICAL HARNESS (Connecting Floor Tile to External Control Box)
+    const umbilicalCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, 12, 225),       // Gland exit at tile rear
+      new THREE.Vector3(120, 10, 220),
+      new THREE.Vector3(220, 8, 140),
+      new THREE.Vector3(260, 12, 60),
+      new THREE.Vector3(250, 15, 0)        // Entry into external control box
+    ]);
+    const umbilicalCable = new THREE.Mesh(new THREE.TubeGeometry(umbilicalCurve, 28, 3.5, 8, false), matDiodeBlack);
+    umbilicalCable.userData = {
+      name: "4-Core Heavy-Duty Umbilical Cable",
+      desc: "Flexible conduit carrying raw Piezo AC power (2 wires) and the tactile step-count switch signal (2 wires) safely from the tile to the external box."
+    };
+    circuitGroup.add(umbilicalCable);
+
+    // 8. USB TELEMETRY LINK TO LAPTOP / PC
+    const lapGroup = new THREE.Group();
+    lapGroup.position.set(490, 0, 0);
+    loadsGroup.add(lapGroup);
+
+    const lapBase = new THREE.Mesh(new THREE.BoxGeometry(130, 6, 95), matSteel);
+    lapBase.position.y = 3;
+    lapGroup.add(lapBase);
+
+    const lapScreen = new THREE.Mesh(new THREE.BoxGeometry(130, 90, 4), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.2, emissive: 0x0284c7, emissiveIntensity: 0.35 }));
+    lapScreen.position.set(0, 46, -45);
+    lapScreen.rotation.x = -0.25;
+    lapGroup.add(lapScreen);
+    lapGroup.userData = {
+      name: "PC Telemetry & Step Counter Software",
+      desc: "Connects to ESP32 via Wi-Fi or USB Serial to display live footstep count, harvested microjoules, and battery charge status in real time."
+    };
+    partMeshes['laptop'] = lapGroup;
+
+    const usbCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(400, 17, 0),
+      new THREE.Vector3(430, 12, 0),
+      new THREE.Vector3(450, 6, 0)
+    ]);
+    circuitGroup.add(new THREE.Mesh(new THREE.TubeGeometry(usbCurve, 12, 2.0, 8, false), matDiodeBlack));
+
+    // 8. CONNECTED OUTPUT LOADS (OBJECTIVE 5)
+    // A. 12V Campus LED Pathway Lamp
+    const lampGroup = new THREE.Group();
+    lampGroup.position.set(-300, 0, -80);
+    loadsGroup.add(lampGroup);
+
+    // Lamp Post
+    const postGeo = new THREE.CylinderGeometry(5, 5, 140, 12);
+    const postMesh = new THREE.Mesh(postGeo, matSteel);
+    postMesh.position.y = 70;
+    lampGroup.add(postMesh);
+
+    // Lamp Fixture & Bulb
+    const bulbGeo = new THREE.SphereGeometry(12, 16, 16);
+    const bulbMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x10b981, emissiveIntensity: 0.1 });
+    const bulbMesh = new THREE.Mesh(bulbGeo, bulbMat);
+    bulbMesh.position.y = 140;
+    lampGroup.add(bulbMesh);
+    partMeshes['lamp'] = lampGroup;
+
+    // B. Smartphone on 5V USB Charger
+    const phoneGeo = new THREE.BoxGeometry(45, 4, 85);
+    const phoneMesh = new THREE.Mesh(phoneGeo, new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 }));
+    phoneMesh.position.set(-300, 2, 70);
+    loadsGroup.add(phoneMesh);
+
+    // Phone Screen Glowing
+    const pScreenGeo = new THREE.BoxGeometry(40, 1, 75);
+    const pScreen = new THREE.Mesh(pScreenGeo, new THREE.MeshBasicMaterial({ color: 0x00e5ff }));
+    pScreen.position.set(-300, 4.5, 70);
+    loadsGroup.add(pScreen);
+    partMeshes['phone'] = phoneMesh;
+
+    // C. 18 MICRO-LED "I LOVE QCU" ILLUMINATED SIGNBOARD
+    const signGroup = new THREE.Group();
+    signGroup.position.set(-320, 0, 0); // Positioned prominently beside tile
+    loadsGroup.add(signGroup);
+
+    // Kiosk Base & Stanchions
+    const signBaseMesh = new THREE.Mesh(new THREE.BoxGeometry(180, 6, 40), matSteel);
+    signBaseMesh.position.set(0, 3, 0);
+    signGroup.add(signBaseMesh);
+
+    const stanchionL = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 45, 12), matSteel);
+    stanchionL.position.set(-65, 25, 0);
+    signGroup.add(stanchionL);
+
+    const stanchionR = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 45, 12), matSteel);
+    stanchionR.position.set(65, 25, 0);
+    signGroup.add(stanchionR);
+
+    // Acrylic Display Board (180 x 75 x 6 mm)
+    const boardGeo = new THREE.BoxGeometry(180, 75, 6);
+    const boardMat = new THREE.MeshStandardMaterial({ color: 0x0b1120, roughness: 0.3, transparent: true, opacity: 0.92 });
+    const boardMesh = new THREE.Mesh(boardGeo, boardMat);
+    boardMesh.position.set(0, 70, 0);
+    boardMesh.castShadow = true;
+    signGroup.add(boardMesh);
+    boardMesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(boardGeo), new THREE.LineBasicMaterial({ color: 0x00e5ff })));
+
+    // Neon Glow Lights on the Sign
+    const signGlowCyan = new THREE.PointLight(0x00e5ff, 1.2, 200);
+    signGlowCyan.position.set(0, 70, 15);
+    signGroup.add(signGlowCyan);
+
+    const signGlowHeart = new THREE.PointLight(0xf43f5e, 0.9, 120);
+    signGlowHeart.position.set(-20, 70, 15);
+    signGroup.add(signGlowHeart);
+
+    // 18 Micro-LED Points in 3D
+    const ledMeshes = [];
+    const ledMatCyan = new THREE.MeshStandardMaterial({ color: 0x00e5ff, emissive: 0x00e5ff, emissiveIntensity: 1.0 });
+    const ledMatRed = new THREE.MeshStandardMaterial({ color: 0xf43f5e, emissive: 0xf43f5e, emissiveIntensity: 1.2 });
+
+    function add3DLed(lx, ly, isRed = false) {
+      const sGeo = new THREE.SphereGeometry(2.6, 12, 12);
+      const sMesh = new THREE.Mesh(sGeo, isRed ? ledMatRed : ledMatCyan);
+      sMesh.position.set(lx, ly, 4); // On front face of board
+      signGroup.add(sMesh);
+      ledMeshes.push(sMesh);
+    }
+
+    // Letter 'I' (2 LEDs)
+    add3DLed(-60, 80);
+    add3DLed(-60, 60);
+
+    // Heart '❤️' (6 LEDs)
+    add3DLed(-28, 83, true);
+    add3DLed(-12, 83, true);
+    add3DLed(-35, 71, true);
+    add3DLed(-20, 71, true);
+    add3DLed(-5, 71, true);
+    add3DLed(-20, 56, true);
+
+    // Letters 'QCU' (10 LEDs)
+    // Q
+    add3DLed(15, 80);
+    add3DLed(15, 60);
+    add3DLed(30, 80);
+    add3DLed(30, 60);
+    add3DLed(35, 54);
+    // C
+    add3DLed(48, 80);
+    add3DLed(48, 60);
+    // U
+    add3DLed(62, 80);
+    add3DLed(62, 60);
+    add3DLed(76, 70);
+
+    signGroup.userData = {
+      name: '18 Micro-LED "I ❤️ QCU" Signboard',
+      desc: '18 salvaged micro-LEDs spelling "I ❤️ QCU". Full Bright (125mW, 1.5kΩ) & Dim Mode (18mW, 10kΩ). Direct visual confirmation of footstep energy.'
+    };
+    partMeshes['sign'] = signGroup;
+
+    /* =========================================================================
+       4. INTERACTIVE SIMULATION & OSCILLOSCOPE ENGINE
+       ========================================================================= */
+    let currentDepth = 0.0; // 0 to 3.0 mm
+    let stepCount = 0;
+    let totalJoules = 0.0;
+    let lastStepJoules = 0.0;
+    let isStomping = false;
+    let autoTrafficInterval = null;
+    let isXRay = false;
+    let transistorActive = false;
+    let selectedWeight = 160; // kg
+
+    function adjustPedestrianWeight(val) {
+      selectedWeight = parseInt(val);
+      const isHeavy = selectedWeight >= 140;
+      const isSurge = selectedWeight >= 220;
+      let label = isSurge ? "EXTREME SURGE" : (isHeavy ? "HEAVY LOAD" : "NORMAL LOAD");
+      document.getElementById('weight-val').innerText = `${selectedWeight} kg (${label})`;
+
+      // Dynamic foot strike force: F = m * (g + a), a ≈ 2.45 m/s² impact acceleration
+      const impactForce = Math.round(selectedWeight * (9.81 + 2.45));
+      const transducerLoad = 25; // N (calibrated hard stop limit)
+      const bypassed = Math.max(0, impactForce - transducerLoad);
+      const bypassPercent = ((bypassed / impactForce) * 100).toFixed(1);
+      const fos = (400.0 / selectedWeight).toFixed(1);
+
+      document.getElementById('txt-force').innerText = `${impactForce.toLocaleString()} N (${selectedWeight} kg)`;
+      document.getElementById('txt-bypassed').innerText = `${bypassed.toLocaleString()} N (${bypassPercent}% BYPASS)`;
+      document.getElementById('txt-sensor-load').innerText = `${transducerLoad} N (SAFE CALIBRATED)`;
+      document.getElementById('txt-fos').innerText = `${fos}x (RATED 400kg)`;
+
+      const badge = document.getElementById('badge-integrity');
+      badge.innerText = isHeavy
+        ? "🛡️ STRUCTURALLY INTACT • 150KG+ RATED (ZERO DAMAGE)"
+        : "✅ STRUCTURALLY STABLE • NORMAL BUFFER";
+      badge.style.color = "#22c55e";
+    }
+
+    function setWeightPreset(w) {
+      document.getElementById('weight-slider').value = w;
+      document.querySelectorAll('#sim-dock .cad-btn').forEach(b => {
+        if (b.id && b.id.startsWith('btn-w-')) b.classList.remove('active');
+      });
+      document.getElementById(`btn-w-${w}`)?.classList.add('active');
+      adjustPedestrianWeight(w);
+    }
+
+    // Oscilloscope buffer
+    const scopeCanvas = document.getElementById('scope-canvas');
+    const sctx = scopeCanvas.getContext('2d');
+    let scopeData = new Array(80).fill(0);
+
+    function updateKinematics(depth) {
+      currentDepth = depth;
+
+      // 1. Top Plate Y Position (Deflects down by depth)
+      topMesh.position.y = RESTING_TOP_Y - currentDepth;
+
+      // 2. EVA Foam Strike Pads Squish
+      const foamSquish = Math.max(0.4, 1.0 - (currentDepth / 3.0) * 0.45);
+      piezoComponents.forEach(p => {
+        p.foam.scale.set(1.1, foamSquish, 1.1);
+        // Subtle center deflection of ceramic
+        p.pzt.position.y = 3.8 - (currentDepth / 3.0) * 0.5;
+      });
+    }
+
+    function manualDepthAdjust(val) {
+      val = parseFloat(val);
+      const dVal = document.getElementById('depth-val');
+      if (dVal) dVal.innerText = `${val.toFixed(1)} / 3.0 mm`;
+      const travelBadge = document.getElementById('travel-badge');
+      if (travelBadge) travelBadge.innerText = `Δz: ${val.toFixed(1)} mm`;
+      updateKinematics(val);
+    }
+
+    let lastStompTimestamp = 0;
+    function executeStomp() {
+      const now = performance.now();
+      // Auto-recover if previous stomp got hung for >420ms
+      if (isStomping && (now - lastStompTimestamp < 420)) return;
+      isStomping = true;
+      lastStompTimestamp = now;
+
+      // Piezo Physics: 4 Piezos under pedestrian footfall
+      const weightFactor = Math.min(1.35, Math.max(0.85, (typeof selectedWeight !== 'undefined' ? selectedWeight : 75) / 80));
+      const peakV = (16.5 + Math.random() * 8.5) * weightFactor;
+      // 10:1 divider scales to ESP32 ADC1 Pin (GPIO 34) (0 - 3.1V, clamped <= 5.1V Zener)
+      const adcV = Math.min(3.3, peakV / 10.0);
+      // Harvested energy: ~0.15 - 0.45 mJ per strike from 4 discs
+      const stepMilliJoules = (0.18 + Math.random() * 0.28) * weightFactor;
+      const stepJoules = stepMilliJoules / 1000.0;
+
+      totalJoules += stepJoules;
+      stepCount++;
+
+      // Update UI Telemetry
+      const elSteps = document.getElementById('step-count');
+      if (elSteps) elSteps.innerText = stepCount;
+      const elPiezo = document.getElementById('v-piezo');
+      if (elPiezo) elPiezo.innerText = `${peakV.toFixed(1)} V`;
+      const elAdc = document.getElementById('v-adc');
+      if (elAdc) elAdc.innerText = `${adcV.toFixed(2)} V`;
+      const elJStep = document.getElementById('j-step');
+      if (elJStep) elJStep.innerText = `${stepMilliJoules.toFixed(2)} mJ`;
+      const elJTotal = document.getElementById('j-total');
+      if (elJTotal) elJTotal.innerText = `${(totalJoules * 1000).toFixed(2)} mJ`;
+
+      // Update IPT102 Analytics
+      updateIPT102Metrics();
+
+      // Push wave to oscilloscope
+      scopeData.push(peakV);
+      scopeData.shift();
+
+      // Flash bulb if transistor is active
+      if (transistorActive && typeof bulbMat !== 'undefined') {
+        bulbMat.emissiveIntensity = 1.0;
+        setTimeout(() => { bulbMat.emissiveIntensity = 0.35; }, 400);
+      }
+
+      // Flash the 18 Micro-LED "I ❤️ QCU" Sign
+      if (typeof signGlowCyan !== 'undefined' && signGlowCyan) {
+        signGlowCyan.intensity = 2.8;
+        if (typeof signGlowHeart !== 'undefined' && signGlowHeart) signGlowHeart.intensity = 2.2;
+        if (typeof ledMeshes !== 'undefined') {
+          ledMeshes.forEach(m => { m.scale.set(1.4, 1.4, 1.4); });
+        }
+        const uiHeart = document.getElementById('ui-led-heart');
+        if (uiHeart) uiHeart.style.transform = 'scale(1.25)';
+
+        setTimeout(() => {
+          if (typeof signGlowCyan !== 'undefined' && signGlowCyan) {
+            signGlowCyan.intensity = signBrightnessMode === 'full' ? 1.8 : 0.8;
+          }
+          if (typeof signGlowHeart !== 'undefined' && signGlowHeart) {
+            signGlowHeart.intensity = signBrightnessMode === 'full' ? 1.4 : 0.6;
+          }
+          if (typeof ledMeshes !== 'undefined') {
+            ledMeshes.forEach(m => { m.scale.set(1.0, 1.0, 1.0); });
+          }
+          if (uiHeart) uiHeart.style.transform = 'scale(1.0)';
+        }, 450);
+      }
+
+      // Smooth mechanical downstroke & spring rebound animation
+      let startTime = performance.now();
+      const STOMP_MS = 140;
+      const RETURN_MS = 220;
+
+      function animateStep(timestamp) {
+        try {
+          let elapsed = timestamp - startTime;
+          if (elapsed < STOMP_MS) {
+            let t = elapsed / STOMP_MS;
+            let depth = (1 - Math.pow(1 - t, 3)) * 3.0;
+            updateKinematics(depth);
+            const dSlider = document.getElementById('depth-slider');
+            if (dSlider) dSlider.value = depth;
+            const dVal = document.getElementById('depth-val');
+            if (dVal) dVal.innerText = `${depth.toFixed(1)} / 3.0 mm`;
+            const travelBadge = document.getElementById('travel-badge');
+            if (travelBadge) travelBadge.innerText = `Δz: ${depth.toFixed(1)} mm`;
+            requestAnimationFrame(animateStep);
+          } else if (elapsed < STOMP_MS + RETURN_MS) {
+            let t = (elapsed - STOMP_MS) / RETURN_MS;
+            let bounce = Math.cos(t * Math.PI * 1.5) * Math.exp(-t * 3);
+            let depth = Math.max(0, bounce * 3.0);
+            updateKinematics(depth);
+            const dSlider = document.getElementById('depth-slider');
+            if (dSlider) dSlider.value = depth;
+            const dVal = document.getElementById('depth-val');
+            if (dVal) dVal.innerText = `${depth.toFixed(1)} / 3.0 mm`;
+            const travelBadge = document.getElementById('travel-badge');
+            if (travelBadge) travelBadge.innerText = `Δz: ${depth.toFixed(1)} mm`;
+            requestAnimationFrame(animateStep);
+          } else {
+            updateKinematics(0.0);
+            const dSlider = document.getElementById('depth-slider');
+            if (dSlider) dSlider.value = 0;
+            const dVal = document.getElementById('depth-val');
+            if (dVal) dVal.innerText = `0.0 / 3.0 mm`;
+            const travelBadge = document.getElementById('travel-badge');
+            if (travelBadge) travelBadge.innerText = `Δz: 0.0 mm`;
+            isStomping = false;
+          }
+        } catch (err) {
+          console.error("animateStep error caught:", err);
+          updateKinematics(0.0);
+          isStomping = false;
+        }
+      }
+      requestAnimationFrame(animateStep);
+    }
+
+    function updateIPT102Metrics() {
+      // 1-Hour, 10-Hour, 24h, 48h projections
+      const factor1h = Math.min(stepCount * 0.045, 12.5);
+      const factor10h = factor1h * 8.5;
+      const factor24h = factor10h * 2.2;
+      const factor48h = factor24h * 1.9;
+
+      document.getElementById('val-1h').innerText = `${factor1h.toFixed(2)} J (Class Changeover)`;
+      document.getElementById('val-10h').innerText = `${factor10h.toFixed(2)} J (QCU Shift)`;
+      document.getElementById('val-24h').innerText = `${factor24h.toFixed(2)} J (Full Day)`;
+      document.getElementById('val-48h').innerText = `${factor48h.toFixed(2)} J (48h Face-to-Face)`;
+
+      // Cadence (Simulated 65-80 steps/min under traffic)
+      const cadence = autoTrafficInterval ? 72 : (stepCount > 0 ? 45 : 0);
+      document.getElementById('val-cadence').innerText = `${cadence} steps / min`;
+
+      // Device Equivalencies (Objective 6)
+      // 4000mAh @ 3.7V = 53,280 Joules
+      const phonePercent = (totalJoules / 532.8);
+      const talkMinutes = (totalJoules / 1.2);
+      const lampMinutes = (totalJoules / 0.8);
+
+      document.getElementById('val-phone').innerText = `${phonePercent.toFixed(3)} %`;
+      document.getElementById('val-talk').innerText = `${talkMinutes.toFixed(2)} mins`;
+      document.getElementById('val-lamp').innerText = `${lampMinutes.toFixed(2)} mins`;
+    }
+
+    function toggleLoadTransistor() {
+      transistorActive = !transistorActive;
+      const btnText = document.getElementById('transistor-btn-text');
+      const stateLamp = document.getElementById('state-lamp');
+      const pillLamp = document.getElementById('pill-lamp');
+
+      if (transistorActive) {
+        btnText.innerText = "⏹ Turn Transistor OFF";
+        stateLamp.innerText = "ACTIVE (12V ON)";
+        stateLamp.style.color = "var(--accent-green)";
+        pillLamp.classList.add('active');
+        bulbMat.emissiveIntensity = 0.7;
+      } else {
+        btnText.innerText = "⚡ Trigger Transistor";
+        stateLamp.innerText = "STANDBY (RELAY OFF)";
+        stateLamp.style.color = "var(--text-dim)";
+        pillLamp.classList.remove('active');
+        bulbMat.emissiveIntensity = 0.1;
+      }
+    }
+
+    let signBrightnessMode = 'dim';
+    function toggleSignMode() {
+      const modeLbl = document.getElementById('ui-sign-mode');
+      if (signBrightnessMode === 'dim') {
+        signBrightnessMode = 'full';
+        modeLbl.innerText = 'FULL (125 mW)';
+        modeLbl.style.color = 'var(--accent-rose)';
+        if (typeof signGlowCyan !== 'undefined') {
+          signGlowCyan.intensity = 1.8;
+          signGlowHeart.intensity = 1.4;
+        }
+      } else {
+        signBrightnessMode = 'dim';
+        modeLbl.innerText = 'DIM (18 mW)';
+        modeLbl.style.color = 'var(--accent-green)';
+        if (typeof signGlowCyan !== 'undefined') {
+          signGlowCyan.intensity = 0.8;
+          signGlowHeart.intensity = 0.6;
+        }
+      }
+    }
+
+    function toggleAutoPedestrians() {
+      const btnText = document.getElementById('auto-btn-text');
+      if (autoTrafficInterval) {
+        clearInterval(autoTrafficInterval);
+        autoTrafficInterval = null;
+        if (btnText) btnText.innerText = "▶ Simulate Traffic";
+        updateIPT102Metrics();
+      } else {
+        if (btnText) btnText.innerText = "⏹ Stop Traffic";
+        executeStomp();
+        autoTrafficInterval = setInterval(() => {
+          executeStomp();
+        }, 850);
+      }
+    }
+
+    /* =========================================================================
+       5. COMPONENT INSPECTOR & CAMERA FOCUS ENGINE
+       ========================================================================= */
+    const componentDossiers = {
+      piezo: {
+        name: "4x Piezoelectric Transducer Discs (35mm PZT)",
+        desc: "The primary kinetic electromechanical sensors in your IPT102 proposal. When pedestrian footsteps exert mechanical stress onto the tile, the ceramic Lead Zirconate Titanate (PZT) crystal lattice polarizes, generating a proportional high-voltage AC pulse.",
+        specs: [
+          ["Diameter", "35.0 mm Brass Substrate / 25.0 mm PZT Ceramic"],
+          ["Peak Voltage", "15.0 V to 28.0 V per footfall"],
+          ["Transduction", "Direct Piezoelectric Effect (d33 / d31 mode)"],
+          ["Salvage Source", "₱0 from broken buzzer alarms, musical cards, or ₱6 at Raon"]
+        ],
+        target: new THREE.Vector3(-120, 16, -120),
+        camPos: new THREE.Vector3(-120, 85, -20)
+      },
+      foam: {
+        name: "EVA Foam Strike Impact Pads",
+        desc: "Critical mechanical protection layer. Direct foot shear crushes brittle ceramic discs within 3 footsteps. These dense EVA foam pads concentrate vertical force downward while dampening destructive horizontal shear.",
+        specs: [
+          ["Material", "High-Density Ethylene-Vinyl Acetate (EVA)"],
+          ["Dimensions", "12 mm Diameter x 6 mm Free Height"],
+          ["Position", "Dead-center on PZT ceramic electrode"],
+          ["Salvage Source", "₱0 (Cut from an old discarded slipper / tsinelas)"]
+        ],
+        target: new THREE.Vector3(-120, 20, -120),
+        camPos: new THREE.Vector3(-120, 65, -60)
+      },
+      ring: {
+        name: "Rubber O-Ring Base Seats",
+        desc: "Suspends the brass outer perimeter 2mm above the base plate. Without this clearance, the disc lies flat against hard wood and cannot deflect, producing zero charge.",
+        specs: [
+          ["Inner Clearance", "24 mm ID x 3 mm Height"],
+          ["Function", "Permits flexural bowing under load"],
+          ["Salvage Source", "₱0 (Rubber faucet washers or plastic bottle cap rims)"]
+        ],
+        target: new THREE.Vector3(-120, 14, -120),
+        camPos: new THREE.Vector3(-120, 50, -40)
+      },
+      diodes: {
+        name: "1N5819 Schottky Full-Wave Bridge Rectifier",
+        desc: "Housed inside the External Control Box input stage. Converts bidirectional AC piezo vibration waves into unidirectional DC pulses. Standard 1N4007 silicon diodes waste 1.4V to 1.6V as heat; Schottky barrier diodes limit loss to just 0.35V. An additional blocking diode prevents battery voltage from backfeeding into the piezos.",
+        specs: [
+          ["Configuration", "4-Diode Graetz Diamond Bridge + Blocking Diode"],
+          ["Forward Drop", "Vf ≈ 0.35 V (Ultra-Low Loss Schottky)"],
+          ["Current Rating", "1.0 A Peak / 40 V Reverse"],
+          ["Housing", "Inside External Control Box (Vibration Isolated)"],
+          ["Salvage Source", "₱0 (Old scrap phone charger adapter brick)"]
+        ],
+        target: new THREE.Vector3(243, 19.5, -35),
+        camPos: new THREE.Vector3(243, 70, 20)
+      },
+      cap: {
+        name: "2,200 µF / 25V Electrolytic Reservoir Tank Capacitor",
+        desc: "Buffers short-duration (~5ms) high-impedance piezo charge spikes into a steady reservoir voltage inside the control box. Eliminates voltage collapse and brownouts so the ESP32 ADC1 can sample the incoming harvest peak accurately.",
+        specs: [
+          ["Capacitance", "2,200 µF (Low-ESR Electrolytic)"],
+          ["Voltage Rating", "25 V / 35 V Working Voltage"],
+          ["Role", "Dynamic Pulse Energy Buffer & Smoothing Tank"],
+          ["Housing", "Inside External Control Box Breadboard"],
+          ["Salvage Source", "₱0 (Scrap motherboard, TV board, or charger)"]
+        ],
+        target: new THREE.Vector3(260, 24, -35),
+        camPos: new THREE.Vector3(260, 75, 20)
+      },
+      divider: {
+        name: "100kΩ / 10kΩ Precision Voltage Divider (10:1)",
+        desc: "Scales down raw 0-30V harvested piezo spikes by an exact 10:1 ratio into safe 0-3.0V levels. Protects the ESP32 ADC1 (GPIO 34) from exceeding its absolute maximum 3.3V logic ceiling.",
+        specs: [
+          ["Ratio", "10:1 (R1=100kΩ, R2=10kΩ metal film)"],
+          ["Calculation", "V_ADC = V_in * (10 / 110)"],
+          ["Protection", "Prevents ESP32 ADC port latch-up & silicon breakdown"],
+          ["Housing", "Inside External Control Box Breadboard"],
+          ["Salvage Source", "₱0 (Scrap resistor assortment)"]
+        ],
+        target: new THREE.Vector3(250, 19.5, -15),
+        camPos: new THREE.Vector3(250, 70, 35)
+      },
+      zener: {
+        name: "5.1V Zener Diode Surge Clamp (1N4733A)",
+        desc: "Fail-safe hardware overvoltage clamp installed inside the control box across ESP32 GPIO 34 and GND. If someone aggressively stomps the tile causing voltage to surge past 30V, the Zener diode enters avalanche breakdown and clamps the line strictly to 5.1V maximum.",
+        specs: [
+          ["Clamp Voltage", "5.1 V ± 5%"],
+          ["Power Rating", "1.0 Watt Zener"],
+          ["Wiring", "Cathode to ESP32 GPIO 34, Anode to GND"],
+          ["Housing", "Inside External Control Box Breadboard"],
+          ["Salvage Source", "₱0 (Scrap electronics power supply)"]
+        ],
+        target: new THREE.Vector3(273, 19.5, -35),
+        camPos: new THREE.Vector3(273, 70, 20)
+      },
+      transistor: {
+        name: "2N2222 NPN Load Switching Transistor",
+        desc: "Controlled by ESP32 Digital Pin GPIO 23 via a 1kΩ base current-limiting resistor. Safely switches the external 'I ❤️ QCU' sign or LED load ON/OFF without drawing current from the ESP32 GPIO pins.",
+        specs: [
+          ["Package", "TO-92 NPN Bipolar Junction Transistor"],
+          ["Collector Current", "800 mA continuous / 40 V breakdown"],
+          ["Control", "Driven via 1kΩ base resistor on ESP32 GPIO 23"],
+          ["Housing", "Inside External Control Box Breadboard"],
+          ["Salvage Source", "₱0 (Old radio, toy, or broken amplifier)"]
+        ],
+        target: new THREE.Vector3(270, 20, -15),
+        camPos: new THREE.Vector3(270, 70, 35)
+      },
+      esp32: {
+        name: "ESP32-WROOM-32 (Dual-Core 240MHz IoT Microcontroller)",
+        desc: "Upgraded core hardware controller housed safely inside the external kiosk box. Dual-core 32-bit Xtensa processor with Wi-Fi 802.11 b/g/n and BLE. Operates in 10µA Deep Sleep until awakened by a footstep kinetic pulse or the limit switch on GPIO 33. Samples the clamped voltage divider on ADC1 (GPIO 34) and transmits live telemetry wirelessly to PC.",
+        specs: [
+          ["Processor Core", "Xtensa Dual-Core 32-bit LX6 @ 240 MHz"],
+          ["Memory", "520 KB SRAM / 4 MB Flash"],
+          ["Wireless", "Wi-Fi 802.11 b/g/n + Bluetooth v4.2 BR/EDR & BLE"],
+          ["Power Profile", "10 µA Deep Sleep / ~160 mA Active Wi-Fi Burst"],
+          ["Sensors & IO", "GPIO 34 (ADC1), GPIO 33 (RTC Interrupt), GPIO 23 (Sign Driver)"],
+          ["Housing", "Inside External Control Enclosure (Vibration-Isolated)"]
+        ],
+        target: new THREE.Vector3(375, 18, 0),
+        camPos: new THREE.Vector3(375, 75, 90)
+      },
+      battery: {
+        name: "Repurposed 3.7V 18650 Li-ion Battery (Salvaged Powerbank)",
+        desc: "2,200 mAh 3.7V cylindrical lithium cell salvaged from a dead powerbank. Certified healthy through digital multimeter testing with zero swelling. Housed safely in the external kiosk box away from pedestrian stomp impacts. Acts as the primary energy reservoir buffer to absorb harvested footstep micro-charges and supply high-current bursts required during ESP32 Wi-Fi transmissions.",
+        specs: [
+          ["Chemistry & Cell", "Lithium-Ion 18650 Cylindrical (3.7V Nominal)"],
+          ["Operating Range", "3.0 V (Discharged) to 4.2 V (Fully Charged)"],
+          ["Capacity", "2,200 mAh (≈ 8.14 Watt-hours / 29,300 Joules)"],
+          ["Safety Protocol", "Never placed under mechanical foot plate; housed in external box cradle"],
+          ["Salvage Source", "₱0 (Repurposed from broken powerbank)"]
+        ],
+        target: new THREE.Vector3(255, 18, 30),
+        camPos: new THREE.Vector3(255, 75, 120)
+      },
+      tp4056: {
+        name: "TP4056 + 1S DW01A BMS Charge Protection Board",
+        desc: "Dedicated linear lithium charge management controller paired with a DW01A battery protection IC and dual FS8205A MOSFET switches. Enforces strict Constant-Current/Constant-Voltage (CC/CV) charging from rectified piezo pulses and cuts off at 2.9V/4.25V to prevent catastrophic over-discharge or overcharge.",
+        specs: [
+          ["Charge Algorithm", "CC / CV (Constant Current / Constant Voltage)"],
+          ["Overcharge Cutoff", "4.25 V ± 0.05 V (DW01A Protection)"],
+          ["Overdischarge Cutoff", "2.90 V ± 0.05 V (Prevents permanent cell death)"],
+          ["Short Circuit Protection", "Auto-disconnect via FS8205A dual MOSFET"],
+          ["Status Indicators", "Red LED (Charging) / Blue LED (Standby)"]
+        ],
+        target: new THREE.Vector3(320, 16, -25),
+        camPos: new THREE.Vector3(320, 65, 55)
+      },
+      boost: {
+        name: "MT3608 DC-DC 5V Step-Up Boost Converter Module",
+        desc: "High-frequency 1.2MHz current-mode step-up converter. Takes fluctuating 3.0V - 4.2V battery voltage and steps it up to an ultra-stable, regulated 5.02V DC rail with up to 93% efficiency, cleanly powering the ESP32 VIN pin and the 'I ❤️ QCU' sign display.",
+        specs: [
+          ["Topology", "Non-Isolated DC-DC Step-Up Boost (1.2 MHz Switching)"],
+          ["Input Voltage", "3.0 V - 4.2 V DC (Direct from BMS)"],
+          ["Output Voltage", "5.02 V DC Regulated (Adjusted via 25-turn Potentiometer)"],
+          ["Peak Efficiency", "93% @ 200 mA Load"],
+          ["Output Rail", "Powers ESP32 VIN & 18 Micro-LED Sign Display"]
+        ],
+        target: new THREE.Vector3(320, 16, 25),
+        camPos: new THREE.Vector3(320, 65, 105)
+      },
+      switch: {
+        name: "Tactile Step-Count Limit Switch (Mechanical Tile Trigger)",
+        desc: "Sub-miniature snap-action mechanical microswitch centered directly beneath the top floor tread. When an adult or child steps down 2.5mm, the plate physically trips the switch arm, providing a 100% bounce-free step interrupt signal to ESP32 GPIO 33.",
+        specs: [
+          ["Switch Type", "Snap-Action SPDT Subminiature Limit Switch"],
+          ["Actuation Stroke", "2.5 mm Downward Tread Deflection"],
+          ["Mechanical Life", "1,000,000+ Cycles"],
+          ["Connection", "Direct to ESP32 GPIO 33 (Internal Pull-Up)"]
+        ],
+        target: new THREE.Vector3(0, 16, 0),
+        camPos: new THREE.Vector3(0, 60, 65)
+      },
+      box: {
+        name: "External Modular Control & Telemetry Enclosure",
+        desc: "Independent desktop / kiosk enclosure containing all active electronics: Rectifiers, Zener Surge Clamps, 18650 Battery, BMS, Boost Converter, and ESP32. Completely isolates sensitive electronics from foot impact vibrations and allows effortless USB programming without disassembling the floor.",
+        specs: [
+          ["Dimensions & Material", "220 x 140 x 50 mm Tinted Polycarbonate / ABS"],
+          ["Cover", "Clear Acrylic Inspection Lid (Easy maintenance)"],
+          ["Front Controls", "Manual ON/OFF Power Button & USB Service Port"],
+          ["Safety Rating", "Zero human weight load / Vibration-Free"]
+        ],
+        target: new THREE.Vector3(310, 25, 0),
+        camPos: new THREE.Vector3(310, 110, 170)
+      },
+      laptop: {
+        name: "Host Python Telemetry Workstation (IPT102 Core)",
+        desc: "Runs the Python data ingestion script (Objective 2), SQLite database, 1h/10h/24h/48h analytics engine (Objective 3), and Web Analytics Dashboard evaluated by Prof. Marilou Mangrobang.",
+        specs: [
+          ["Stack", "Python 3.14 + PySerial + SQLite3 + Web Dashboard"],
+          ["Role", "Primary academic deliverable for IPT102"],
+          ["Features", "Device Equivalence Calculator & Load Tracking"],
+          ["Hardware", "Student Laptop / PC"]
+        ],
+        target: new THREE.Vector3(320, 40, 0),
+        camPos: new THREE.Vector3(320, 140, 180)
+      },
+      bolts: {
+        name: "4x M8 Guide Bolts & Stop Collars",
+        desc: "Rigid mechanical skeleton. The 4 M8 bolts keep the top plate perfectly level while the gold stop collar nuts limit downward travel to exactly 3.0mm, safeguarding the internal transducers.",
+        specs: [
+          ["Bolts", "4x M8 x 100mm Grade 8.8 Galvanized Steel"],
+          ["Travel Limit", "3.0 mm (JR East Tokyo Station standard)"],
+          ["Load Rating", "Rated for 300+ kg human foot traffic"],
+          ["Salvage Source", "₱20-30 at any Novaliches hardware/junk shop"]
+        ],
+        target: new THREE.Vector3(-195, 40, -195),
+        camPos: new THREE.Vector3(-195, 120, -100)
+      },
+      anvils: {
+        name: "4x Heavy-Duty Steel Load Anvils (150kg+ Bypass Stops)",
+        desc: "Hard bottom-out columns. When a 150-250 kg person steps, the top plate compresses 2.5mm and immediately bottoms out on these 4 solid steel anvils. Over 98% of the impact force bypasses the piezo sensors completely into the floor!",
+        specs: [
+          ["Diameter & Material", "28 mm Solid High-Tensile Steel Column"],
+          ["Cushioning Cap", "4.5 mm High-Durometer Polyurethane Bumper"],
+          ["Proof Load Rating", "400+ kg (Supports jumping with heavy gear)"],
+          ["Location", "Quadrant insets directly under footfall center"]
+        ],
+        target: new THREE.Vector3(-75, 20, -75),
+        camPos: new THREE.Vector3(-75, 75, -20)
+      },
+      stiffeners: {
+        name: "Under-Plate Anti-Flex Steel Stiffener Grid",
+        desc: "Cross-braced structural steel angles bolted directly to the underside of the 18mm tread plate. Dramatically increases the section modulus (Z), reducing center bending deflection to < 0.3mm and eliminating wood cracking.",
+        specs: [
+          ["Profile", "20 mm x 20 mm Steel Angle Cross-Bracing"],
+          ["Span", "410 mm X-Axis and Z-Axis Reinforcement"],
+          ["Max Deflection", "< 0.30 mm under concentrated 2,000 N shock"],
+          ["Benefit", "Prevents shear fracture of the plywood top tread"]
+        ],
+        target: new THREE.Vector3(0, 30, 0),
+        camPos: new THREE.Vector3(0, 95, 80)
+      },
+      bushings: {
+        name: "Bronze Sleeve Anti-Racking Guide Bushings",
+        desc: "Self-lubricating bronze sleeve bushings press-fitted around the M8 guide bolts. Prevents mechanical binding (racking) when a heavy pedestrian steps unevenly on an outer edge or corner.",
+        specs: [
+          ["Material", "SAE 841 Oil-Impregnated Sintered Bronze"],
+          ["Tolerances", "H7/g6 Precision Slide Fit on M8 Shaft"],
+          ["Function", "Zero-tilt, anti-jamming linear vertical travel"],
+          ["Salvage Source", "₱0 from scrap printer chassis or ₱15 at hardware"]
+        ],
+        target: new THREE.Vector3(-195, 40, -195),
+        camPos: new THREE.Vector3(-195, 90, -120)
+      },
+      sign: {
+        name: "18 Micro-LED 'I ❤️ QCU' Illuminated Signboard",
+        desc: "The primary academic visual display for both AR101 and IPT102. Constructed from 18 salvaged fairy-light micro-LEDs spelling 'I ❤️ QCU' on dark acrylic/foam board. Demonstrates direct visual proof of energy harvesting under foot traffic.",
+        specs: [
+          ["LED Count & Layout", "18 Micro-LEDs: 'I' (2), '❤️' (6), 'QCU' (10)"],
+          ["Full Bright Mode", "1.5 kΩ per LED (25 mA @ 5V = 125 mW)"],
+          ["Dim Mode", "10 kΩ per LED (3.6 mA @ 5V = 18 mW)"],
+          ["Salvage Source", "₱0 (Discarded Christmas lights / fairy-light string)"]
+        ],
+        target: new THREE.Vector3(-320, 60, 0),
+        camPos: new THREE.Vector3(-320, 75, 160)
+      }
+    };
+
+    function inspectPart(key) {
+      const data = componentDossiers[key];
+      if (!data) return;
+
+      // Update Dossier Panel
+      document.getElementById('dossier-name').innerText = data.name;
+      document.getElementById('dossier-desc').innerText = data.desc;
+      document.getElementById('cam-focus').innerText = key.toUpperCase();
+
+      let specsHtml = '<table class="spec-table">';
+      data.specs.forEach(s => {
+        specsHtml += `<tr><td class="dim">${s[0]}</td><td class="val">${s[1]}</td></tr>`;
+      });
+      specsHtml += '</table>';
+      document.getElementById('dossier-specs').innerHTML = specsHtml;
+
+      // Animate Camera to Part
+      animateCameraTo(data.camPos, data.target, 800);
+    }
+
+    function focusOnEsp32() {
+      inspectPart('esp32');
+    }
+
+    function focusOnPower() {
+      inspectPart('battery');
+    }
+
+    function focusOnBreadboard() {
+      inspectPart('diodes');
+    }
+
+    function focusOnPiezo() {
+      inspectPart('piezo');
+    }
+
+    function setCameraView(view) {
+      document.querySelectorAll('#toolbar .cad-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`btn-${view}`)?.classList.add('active');
+      document.getElementById('cam-focus').innerText = view.toUpperCase();
+
+      let camPos, target;
+      if (view === 'top') {
+        camPos = new THREE.Vector3(0, 800, 0);
+        target = new THREE.Vector3(0, 20, 0);
+      } else if (view === 'front') {
+        camPos = new THREE.Vector3(0, 50, 750);
+        target = new THREE.Vector3(0, 40, 0);
+      } else { // Isometric
+        camPos = new THREE.Vector3(520, 440, 600);
+        target = new THREE.Vector3(0, 30, 0);
+      }
+      animateCameraTo(camPos, target, 750);
+    }
+
+    function animateCameraTo(targetPos, targetLookAt, duration = 800) {
+      const startPos = camera.position.clone();
+      const startLook = controls.target.clone();
+      const startTime = performance.now();
+
+      function stepCam(now) {
+        const t = Math.min(1, (now - startTime) / duration);
+        const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+        camera.position.lerpVectors(startPos, targetPos, ease);
+        controls.target.lerpVectors(startLook, targetLookAt, ease);
+        controls.update();
+
+        if (t < 1) requestAnimationFrame(stepCam);
+      }
+      requestAnimationFrame(stepCam);
+    }
+
+    function toggleXRay() {
+      isXRay = !isXRay;
+      const btn = document.getElementById('btn-xray');
+      if (btn) {
+        btn.classList.toggle('active', isXRay);
+        btn.innerText = isXRay ? 'Exploded Skeleton ON' : 'Skeletal / X-Ray';
+      }
+      // Exploded lift: lift top plate up 65mm to reveal the pure mechanical skeleton!
+      topMesh.position.y = isXRay ? (RESTING_TOP_Y + 65) : RESTING_TOP_Y;
+      matTopWood.opacity = isXRay ? 0.22 : 0.92;
+      matTopWood.wireframe = isXRay;
+      matTopWood.needsUpdate = true;
+
+      // Make external box cover wireframe as well so you see inside
+      if (typeof matCoverAcrylic !== 'undefined') {
+        matCoverAcrylic.opacity = isXRay ? 0.12 : 0.28;
+        matCoverAcrylic.wireframe = isXRay;
+        matCoverAcrylic.needsUpdate = true;
+      }
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+    }
+
+    /* =========================================================================
+       6. OSCILLOSCOPE & CAD HUD RENDER LOOP
+       ========================================================================= */
+    function drawOscilloscope() {
+      sctx.clearRect(0, 0, scopeCanvas.width, scopeCanvas.height);
+      sctx.strokeStyle = '#1e293b';
+      sctx.lineWidth = 1;
+
+      for (let x = 0; x < scopeCanvas.width; x += 20) {
+        sctx.beginPath();
+        sctx.moveTo(x, 0);
+        sctx.lineTo(x, scopeCanvas.height);
+        sctx.stroke();
+      }
+      for (let y = 0; y < scopeCanvas.height; y += 17) {
+        sctx.beginPath();
+        sctx.moveTo(0, y);
+        sctx.lineTo(scopeCanvas.width, y);
+        sctx.stroke();
+      }
+
+      sctx.strokeStyle = '#00e5ff';
+      sctx.lineWidth = 2;
+      sctx.shadowColor = '#00e5ff';
+      sctx.shadowBlur = 8;
+      sctx.beginPath();
+
+      const stepX = scopeCanvas.width / (scopeData.length - 1);
+      for (let i = 0; i < scopeData.length; i++) {
+        const val = scopeData[i];
+        const y = scopeCanvas.height - (val / 30.0) * (scopeCanvas.height - 8) - 4;
+        if (i === 0) sctx.moveTo(0, y);
+        else sctx.lineTo(i * stepX, y);
+      }
+      sctx.stroke();
+      sctx.shadowBlur = 0;
+
+      scopeData.push(Math.max(0, scopeData[scopeData.length - 1] * 0.91));
+      scopeData.shift();
+    }
+
+    // Raycasting Inspection Tooltip with Deep Parent Hierarchy Traversal
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const tooltip = document.getElementById('cad-tooltip');
+
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(assemblyGroup.children, true);
+
+      let found = null;
+      for (let hit of intersects) {
+        let obj = hit.object;
+        while (obj && obj !== scene && obj !== assemblyGroup) {
+          if (obj.userData && obj.userData.name) {
+            found = obj.userData;
+            break;
+          }
+          obj = obj.parent;
+        }
+        if (found) break;
+      }
+
+      if (found) {
+        tooltip.style.display = 'block';
+        tooltip.style.left = `${e.clientX + 14}px`;
+        tooltip.style.top = `${e.clientY + 14}px`;
+        tooltip.innerHTML = `<strong style="color:var(--accent-cyan); font-size:12px;">${found.name}</strong><br><span style="color:#cbd5e1; font-size:11px;">${found.desc}</span>`;
+      } else {
+        tooltip.style.display = 'none';
+      }
+    });
+
+    // Click directly on 3D components to inspect in Dossier
+    window.addEventListener('click', (e) => {
+      if (e.target.closest('#top-header, #toolbar, #sim-dock, #right-panel')) return;
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(assemblyGroup.children, true);
+      for (let hit of intersects) {
+        for (let key in partMeshes) {
+          const targetItem = partMeshes[key];
+          let obj = hit.object;
+          while (obj) {
+            if (obj === targetItem) {
+              inspectPart(key);
+              return;
+            }
+            obj = obj.parent;
+          }
+        }
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      scopeCanvas.width = scopeCanvas.offsetWidth;
+      scopeCanvas.height = scopeCanvas.offsetHeight;
+    });
+
+    scopeCanvas.width = 400;
+    scopeCanvas.height = 85;
+
+    // Animation Loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+
+      document.getElementById('cam-x').innerText = camera.position.x.toFixed(0);
+      document.getElementById('cam-y').innerText = camera.position.y.toFixed(0);
+      document.getElementById('cam-z').innerText = camera.position.z.toFixed(0);
+
+      drawOscilloscope();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+
+</html>

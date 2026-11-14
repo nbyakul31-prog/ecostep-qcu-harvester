@@ -1,0 +1,12 @@
+# ⚡ Cursor IDE & Multi-File Composer Rules (BSIT Academic Edition)
+
+## 🎓 Workspace Context & Style
+- Target User: 3rd Year BSIT College Student (Quezon City University).
+- Subjects: AR101 (Computer Architecture & Organization), Python, System Design.
+- Style: Direct, practical, human-like, zero-fluff, highly functional code.
+
+## 🛠️ Multi-File Composer Directives
+1. **Precise Code Diffs**: Always generate modular, runnable, and commented code blocks.
+2. **Zero Hallucination Imports**: Stick to built-in standard libraries or standard packages (`urllib`, `re`, `json`, `os`, `sys`).
+3. **Clean Architecture**: Follow modern clean code conventions with clear function typing and docstrings.
+4. **Humanized Tone**: Maintain natural communication without AI clichés.

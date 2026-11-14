@@ -1,9 +1,10 @@
 # EcoStep QCU: Kinetic Energy-Harvesting Footstep Floor Platform
 ### Academic Hardware Prototype, 4x4 Grid Simulator & Public Utility System
-**Course:** AR101 - Computer Architecture and Organization  
+**Course:** AR101 - Computer Architecture and Organization / IPT102 - Integrative Programming & Technologies 2  
 **Institution:** Quezon City University (QCU – Novaliches Campus)  
 **Target Deployment:** High-Traffic Campus Entrance & Sidewalk Footpaths  
 **Live Interactive Simulator:** [https://nbyakul31-prog.github.io/ecostep-qcu-harvester/](https://nbyakul31-prog.github.io/ecostep-qcu-harvester/)  
+**Live 3D WebGL CAD Visualizer:** [https://nbyakul31-prog.github.io/ecostep-qcu-harvester/ecostep_cad_visualizer.html](https://nbyakul31-prog.github.io/ecostep-qcu-harvester/ecostep_cad_visualizer.html)  
 
 ---
 
@@ -84,10 +85,14 @@ Open **`http://localhost:8080`** in your browser.
 
 ---
 
-## 📄 Documentation
-- Full Academic Specification & Literature Review: [`QCU_Piezoelectric_Floor_Generator_Research_and_SRS.md`](QCU_Piezoelectric_Floor_Generator_Research_and_SRS.md)
-- Vector Blueprint CAD Schematic: [`piezo_floor_blueprint_schematic.svg`](piezo_floor_blueprint_schematic.svg)
-- AutoCAD DXF Drawing: [`piezo_floor_generator_blueprint.dxf`](piezo_floor_generator_blueprint.dxf)
+## 📄 Documentation & Engineering Deliverables
+- **Live 3D CAD Visualizer & Skeletal Mode**: [`ecostep_cad_visualizer.html`](ecostep_cad_visualizer.html) ([Launch Live on Web](https://nbyakul31-prog.github.io/ecostep-qcu-harvester/ecostep_cad_visualizer.html))
+- **EcoStep QCU Engineering Blueprint (SVG)**: [`ecostep_qcu_blueprint.svg`](ecostep_qcu_blueprint.svg)
+- **EcoStep QCU Mechanical Blueprint (DXF)**: [`ecostep_qcu_blueprint.dxf`](ecostep_qcu_blueprint.dxf)
+- **CAD Schematic Generator Engine**: [`ecostep_cad_engine.py`](ecostep_cad_engine.py)
+- **Microcontroller Hardware Firmware**: [`ecostep_arduino_firmware.ino`](ecostep_arduino_firmware.ino)
+- **Real-Time Python Telemetry Logger**: [`ecostep_telemetry.py`](ecostep_telemetry.py)
+- **Full Academic Specification & SRS**: [`QCU_Piezoelectric_Floor_Generator_Research_and_SRS.md`](QCU_Piezoelectric_Floor_Generator_Research_and_SRS.md)
 
 ---
 *Quezon City University · Department of Information Technology · 3rd Year BSIT · Academic Year 2025–2026*
